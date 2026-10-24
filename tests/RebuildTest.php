@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use NoriaLabs\Platform\Db\Connections;
 use NoriaLabs\Platform\Db\Rebuild;
 use NoriaLabs\Platform\Db\Schemas;
 
@@ -204,6 +205,49 @@ describe('trimming a copy to the rebuilt shape', function (): void {
             fn () => null,
         );
     })->throws(InvalidArgumentException::class);
+});
+
+describe('archiving what a release retires', function (): void {
+    beforeEach(function (): void {
+        if (env('NORIA_TEST_PG_ADMIN') === null) {
+            $this->markTestSkipped('Needs a second connection that sees rows committed outside the test.');
+        }
+
+        if (trim((string) shell_exec('command -v pg_restore')) === '') {
+            $this->markTestSkipped('pg_restore is not on PATH.');
+        }
+
+        DB::connection('noria_pg_admin')->statement('drop table if exists retired_widgets');
+        DB::connection('noria_pg_admin')->statement('create table retired_widgets (id int primary key, legacy text)');
+        DB::connection('noria_pg_admin')->table('retired_widgets')->insert(['id' => 1, 'legacy' => 'kept-for-good']);
+    });
+
+    afterEach(function (): void {
+        if (env('NORIA_TEST_PG_ADMIN') !== null) {
+            DB::connection('noria_pg_admin')->statement('drop table if exists retired_widgets');
+        }
+    });
+
+    it('keeps the schema and the rows it is about to drop, and names them', function (): void {
+        $maintenance = Connections::settings('noria_pg_admin');
+        $lines = [];
+
+        $archive = app(Rebuild::class)->archive(
+            $maintenance,
+            Connections::value($maintenance, 'database'),
+            ['retired_widgets.legacy (1 values)'],
+            function (string $line) use (&$lines): void {
+                $lines[] = $line;
+            },
+        );
+
+        $restored = (string) shell_exec('pg_restore --table=retired_widgets --file=- '.escapeshellarg($archive));
+        @unlink($archive);
+
+        expect($archive)->toEndWith('-retired.dump');
+        expect($restored)->toContain('legacy text')->toContain('kept-for-good');
+        expect($lines[0])->toContain($archive)->toContain('retired_widgets.legacy (1 values)');
+    });
 });
 
 describe('orphaned routines', function (): void {

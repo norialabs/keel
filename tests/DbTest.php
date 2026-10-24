@@ -247,24 +247,40 @@ describe('comparing two schemas', function (): void {
         expect($drift['blocking'])->toBe([]);
     });
 
-    it('refuses to drop a table that still holds rows', function (): void {
+    it('retires a table the migrations dropped that still holds rows, naming what it held', function (): void {
         $drift = Schemas::drift(
             ['legacy' => ['id' => shapeOf('legacy', 'id')]],
             [],
             fn (): int => 12,
         );
 
-        expect($drift['blocking'][0])->toContain('legacy still holds 12 rows');
+        expect($drift['blocking'])->toBe([]);
+        expect($drift['discardedTables'])->toBe(['legacy']);
+        expect($drift['retired'])->toBe(['table legacy (12 rows)']);
+        expect($drift['discarded'])->toBe([]);
     });
 
-    it('refuses to drop a column that still holds values', function (): void {
+    it('retires a column the migrations dropped that still holds values, naming what it held', function (): void {
         $drift = Schemas::drift(
             ['invoices' => ['id' => shapeOf('invoices', 'id'), 'old' => shapeOf('invoices', 'old')]],
             ['invoices' => ['id' => shapeOf('invoices', 'id')]],
-            fn (string $table, ?string $column): int => $column === null ? 3 : 3,
+            fn (): int => 3,
         );
 
-        expect($drift['blocking'][0])->toContain('invoices.old still holds 3 values');
+        expect($drift['blocking'])->toBe([]);
+        expect($drift['discardedColumns'])->toBe([['table' => 'invoices', 'column' => 'old']]);
+        expect($drift['retired'])->toBe(['invoices.old (3 values)']);
+    });
+
+    it('retires nothing when what the migrations dropped is empty', function (): void {
+        $drift = Schemas::drift(
+            ['invoices' => ['id' => shapeOf('invoices', 'id'), 'old' => shapeOf('invoices', 'old')]],
+            ['invoices' => ['id' => shapeOf('invoices', 'id')]],
+            fn (string $table, ?string $column): int => $column === null ? 3 : 0,
+        );
+
+        expect($drift['retired'])->toBe([]);
+        expect($drift['discarded'])->toBe(['invoices.old']);
     });
 
     it('refuses a type change under existing rows', function (): void {
