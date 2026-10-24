@@ -242,9 +242,11 @@ after this was noticed.
 long-lived database behind for good - `migrate` sees every file already run, and the gap only
 surfaces as a missing relation somewhere deep inside a request. It runs the migrations against an
 empty probe database first and compares: a table or column the migrations no longer define is
-dropped when it is empty and **refuses to proceed** when it still holds rows, so nothing is lost
-quietly. Then it copies, dumps, rebuilds from the migrations, reloads, and verifies every table
-row for row against the copy before dropping it. Constraints added `NOT VALID` come off for the
+dropped. When it still holds rows, the untouched copy is first archived as a full `-retired.dump`
+in the working directory, kept after the run, and the report names every table and column that
+went with the count it held, so nothing is lost quietly. A type change, a narrowing, or a new
+`not null` column with no default still refuses to proceed. Then it copies, dumps, rebuilds from
+the migrations, reloads, and verifies every table row for row against the copy before dropping it. Constraints added `NOT VALID` come off for the
 reload and go back on afterwards, still not validated, because reloading grandfathered rows
 through them would fail. Nothing is deleted, and if any step fails the error says how to swap the
 copy back.

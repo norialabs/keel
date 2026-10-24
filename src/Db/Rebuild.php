@@ -18,7 +18,7 @@ class Rebuild
     /**
      * @param  callable(string): void  $report
      * @param  list<string>  $bringUp  commands that bring reloaded rows up to what this release reads, run while the grandfathering checks are still held back
-     * @return array{copy: string, dump: string|null, tables: int, rows: int}
+     * @return array{copy: string, dump: string|null, archive: string|null, tables: int, rows: int}
      */
     public function run(string $copy, bool $keep, callable $report, array $bringUp = []): array
     {
@@ -42,9 +42,14 @@ class Rebuild
         $this->createDatabase($admin, $copy, $database, Connections::value($maintenance, 'username'));
 
         $dump = null;
+        $archive = null;
         $expected = [];
 
         try {
+            if ($drift['retired'] !== []) {
+                $archive = $this->archive($maintenance, $copy, $drift['retired'], $report);
+            }
+
             $carried = array_values(array_diff(array_keys($shape), $drift['discardedTables']));
             $copyConnection = $this->connectTo($maintenance, $copy);
             $this->alignToRebuiltShape($copyConnection, $drift, $report);
@@ -99,7 +104,13 @@ class Rebuild
             $dump = null;
         }
 
-        return ['copy' => $copy, 'dump' => $keep ? $dump : null, 'tables' => count($expected), 'rows' => array_sum($expected)];
+        return [
+            'copy' => $copy,
+            'dump' => $keep ? $dump : null,
+            'archive' => $archive,
+            'tables' => count($expected),
+            'rows' => array_sum($expected),
+        ];
     }
 
     /**
@@ -284,7 +295,7 @@ class Rebuild
      * @param  array<string, mixed>  $maintenance
      * @param  array<string, array<string, ColumnShape>>  $shape
      * @param  callable(string): void  $report
-     * @return array{discardedTables: list<string>, discardedColumns: list<array{table: string, column: string}>}
+     * @return array{retired: list<string>, discardedTables: list<string>, discardedColumns: list<array{table: string, column: string}>}
      */
     private function assertNewSchemaFits(
         Connection $admin,
@@ -331,7 +342,7 @@ class Rebuild
      * @param  array<string, array<string, ColumnShape>>  $live
      * @param  array<string, array<string, ColumnShape>>  $rebuilt
      * @param  callable(string): void  $report
-     * @return array{discardedTables: list<string>, discardedColumns: list<array{table: string, column: string}>}
+     * @return array{retired: list<string>, discardedTables: list<string>, discardedColumns: list<array{table: string, column: string}>}
      */
     private function reportDrift(array $live, array $rebuilt, Connection $connection, callable $report): array
     {
@@ -352,14 +363,19 @@ class Rebuild
             $report('Dropping, empty and no longer defined: '.implode(', ', $drift['discarded']).'.');
         }
 
+        if ($drift['retired'] !== []) {
+            $report('Retiring, still holding data but no longer defined: '.implode(', ', $drift['retired']).'.');
+        }
+
         if ($drift['blocking'] !== []) {
             throw new RuntimeException(
                 "The new migrations cannot hold the existing data:\n  - ".implode("\n  - ", $drift['blocking'])
-                ."\nNothing has been changed. Add a migration that moves this data, or keep the columns."
+                ."\nNothing has been changed. Fix the migrations in this release so they can take these rows."
             );
         }
 
         return [
+            'retired' => $drift['retired'],
             'discardedTables' => $drift['discardedTables'],
             'discardedColumns' => $drift['discardedColumns'],
         ];
@@ -405,23 +421,51 @@ class Rebuild
      */
     private function dump(array $maintenance, string $source, callable $report): string
     {
-        $path = $this->workingPath($source);
+        $path = $this->workingPath($source, 'rebuild');
+        $excluded = array_map(fn (string $table): string => '--exclude-table-data=*.'.$table, $this->unrestored());
+        $bytes = $this->pgDump($maintenance, $source, $path, ['--data-only', ...$excluded]);
 
-        $arguments = [
+        $report(sprintf('Dumped the data to %s (%.1f MB).', $path, $bytes / 1_048_576));
+
+        return $path;
+    }
+
+    /**
+     * @param  array<string, mixed>  $maintenance
+     * @param  list<string>  $retired
+     * @param  callable(string): void  $report
+     */
+    public function archive(array $maintenance, string $source, array $retired, callable $report): string
+    {
+        $path = $this->workingPath($source, 'retired');
+        $bytes = $this->pgDump($maintenance, $source, $path, []);
+
+        $report(sprintf(
+            'Archived %s before dropping %s, kept after the rebuild (%.1f MB).',
+            $path,
+            implode(', ', $retired),
+            $bytes / 1_048_576,
+        ));
+
+        return $path;
+    }
+
+    /**
+     * @param  array<string, mixed>  $maintenance
+     * @param  list<string>  $options
+     * @return int the bytes written
+     */
+    private function pgDump(array $maintenance, string $source, string $path, array $options): int
+    {
+        $this->execute($maintenance, [
             'pg_dump',
             ...$this->target($maintenance, $source),
-            '--data-only',
+            ...$options,
             '--format=custom',
             '--no-owner',
             '--no-privileges',
             '--file='.$path,
-        ];
-
-        foreach ($this->unrestored() as $table) {
-            $arguments[] = '--exclude-table-data=*.'.$table;
-        }
-
-        $this->execute($maintenance, $arguments, 'pg_dump');
+        ], 'pg_dump');
 
         $bytes = (int) @filesize($path);
 
@@ -429,9 +473,7 @@ class Rebuild
             throw new RuntimeException('pg_dump produced an empty file.');
         }
 
-        $report(sprintf('Dumped the data to %s (%.1f MB).', $path, $bytes / 1_048_576));
-
-        return $path;
+        return $bytes;
     }
 
     /**
@@ -697,7 +739,7 @@ class Rebuild
         ];
     }
 
-    private function workingPath(string $database): string
+    private function workingPath(string $database, string $purpose): string
     {
         $configured = Config::get('noria.db.working_directory');
         $directory = is_string($configured) && $configured !== ''
@@ -708,7 +750,7 @@ class Rebuild
             throw new RuntimeException("Unable to create the working directory at {$directory}.");
         }
 
-        return $directory.'/'.Carbon::now('UTC')->format('Ymd-His').'-'.$database.'-rebuild.dump';
+        return $directory.'/'.Carbon::now('UTC')->format('Ymd-His').'-'.$database.'-'.$purpose.'.dump';
     }
 
     private static function number(mixed $value): int

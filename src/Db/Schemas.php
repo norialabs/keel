@@ -109,12 +109,13 @@ final class Schemas
      * @param  array<string, array<string, ColumnShape>>  $live
      * @param  array<string, array<string, ColumnShape>>  $rebuilt
      * @param  callable(string, ?string): int  $held
-     * @return array{blocking: list<string>, discarded: list<string>, discardedTables: list<string>, discardedColumns: list<array{table: string, column: string}>, carried: int, newTables: int, additions: int}
+     * @return array{blocking: list<string>, discarded: list<string>, retired: list<string>, discardedTables: list<string>, discardedColumns: list<array{table: string, column: string}>, carried: int, newTables: int, additions: int}
      */
     public static function drift(array $live, array $rebuilt, callable $held): array
     {
         $blocking = [];
         $discarded = [];
+        $retired = [];
         $discardedTables = [];
         $discardedColumns = [];
         $additions = 0;
@@ -125,10 +126,11 @@ final class Schemas
 
                 if ($rows === 0) {
                     $discarded[] = "table {$table}";
-                    $discardedTables[] = $table;
                 } else {
-                    $blocking[] = "table {$table} still holds {$rows} rows and the new migrations do not define it";
+                    $retired[] = "table {$table} ({$rows} rows)";
                 }
+
+                $discardedTables[] = $table;
 
                 continue;
             }
@@ -143,10 +145,11 @@ final class Schemas
 
                     if ($values === 0) {
                         $discarded[] = "{$table}.{$column}";
-                        $discardedColumns[] = ['table' => $table, 'column' => $column];
                     } else {
-                        $blocking[] = "{$table}.{$column} still holds {$values} values and the new migrations do not define it";
+                        $retired[] = "{$table}.{$column} ({$values} values)";
                     }
+
+                    $discardedColumns[] = ['table' => $table, 'column' => $column];
 
                     continue;
                 }
@@ -182,6 +185,7 @@ final class Schemas
         return [
             'blocking' => $blocking,
             'discarded' => $discarded,
+            'retired' => $retired,
             'discardedTables' => $discardedTables,
             'discardedColumns' => $discardedColumns,
             'carried' => count($live),
