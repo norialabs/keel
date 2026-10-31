@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Noria\Keel\Audit;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
+use Noria\Keel\Events\AuditRecorded;
 use Noria\Keel\Keel;
 use Noria\Keel\Tenancy\Tenancy;
 
@@ -28,12 +31,17 @@ class AuditRecorder
             return null;
         }
 
-        $actorId = Auth::id();
+        $actor = Auth::guard($this->guard())->user();
+        $actorId = $actor?->getAuthIdentifier();
 
-        return Keel::auditLogModel()::query()->create([
+        $entry = Keel::auditLogModel()::query()->create([
             Config::string('keel.tenancy.column', 'workspace_id') => $this->tenancy->id(),
-            'actor_id' => $actorId === null ? null : (string) $actorId,
-            'actor_type' => $actorId === null ? 'system' : 'user',
+            'actor_id' => is_scalar($actorId) ? (string) $actorId : null,
+            'actor_type' => match (true) {
+                $actor instanceof Model => $actor->getMorphClass(),
+                $actor !== null => 'user',
+                default => 'system',
+            },
             'action' => $action,
             'target_type' => $targetType,
             'target_id' => $targetId,
@@ -43,5 +51,16 @@ class AuditRecorder
             'user_agent' => $this->context->userAgent(),
             'request_id' => $this->context->id(),
         ]);
+
+        Event::dispatch(new AuditRecorded($entry));
+
+        return $entry;
+    }
+
+    private function guard(): ?string
+    {
+        $guard = Config::get('keel.audit.guard');
+
+        return is_string($guard) && $guard !== '' ? $guard : null;
     }
 }

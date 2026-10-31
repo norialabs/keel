@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Noria\Keel;
 
+use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use InvalidArgumentException;
 use Noria\Keel\Audit\AuditLog;
@@ -82,6 +84,20 @@ final class Keel
         $connection = Config::get('keel.connection');
 
         return is_string($connection) && $connection !== '' ? $connection : null;
+    }
+
+    public static function cache(): Repository
+    {
+        $store = Config::get('keel.cache.store');
+
+        return Cache::store(is_string($store) && $store !== '' ? $store : null);
+    }
+
+    public static function gate(): string
+    {
+        $gate = Config::get('keel.rbac.gate');
+
+        return is_string($gate) && $gate !== '' ? $gate : KeelServiceProvider::GATE;
     }
 
     public static function forgetModels(): void

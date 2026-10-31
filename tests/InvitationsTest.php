@@ -3,14 +3,19 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Noria\Keel\Contracts\Courier;
+use Noria\Keel\Events\InvitationAccepted;
+use Noria\Keel\Events\InvitationCreated;
+use Noria\Keel\Events\InvitationRevoked;
 use Noria\Keel\Identity\Channel;
 use Noria\Keel\Identity\Destination;
 use Noria\Keel\Invitations\Invitation;
 use Noria\Keel\Invitations\InvitationOutcome;
 use Noria\Keel\Invitations\Invitations;
 use Noria\Keel\Keel;
+use Noria\Keel\Tenancy\Tenancy;
 use Noria\Keel\Tests\Fixtures\HostInvitation;
 use Noria\Keel\Tests\Fixtures\StubCourier;
 
@@ -210,5 +215,42 @@ describe('housekeeping', function (): void {
         app(Invitations::class)->invite(ada(), 'member');
 
         expect(HostInvitation::query()->sole())->toBeInstanceOf(HostInvitation::class);
+    });
+});
+
+describe('a product that names things its own way', function (): void {
+    it('accepts into the workspace held in the column the product renamed', function (): void {
+        remigrate(['keel.tenancy.column' => 'tenant_id']);
+        $model = get_class(new class extends Invitation {});
+        Keel::useInvitationModel($model);
+        $seen = [];
+        $model::saved(function () use (&$seen): void {
+            $seen[] = app(Tenancy::class)->id();
+        });
+
+        $invitations = app(Invitations::class);
+        ['token' => $token] = $invitations->invite(ada(), 'member', workspaceId: '01a0b000-0000-7000-8000-00000000000a');
+        $seen = [];
+
+        $accepted = $invitations->accept($token, ada(), 'user-1');
+
+        expect($accepted->getAttribute('tenant_id'))->toBe('01a0b000-0000-7000-8000-00000000000a');
+        expect($seen)->toBe(['01a0b000-0000-7000-8000-00000000000a']);
+    });
+});
+
+describe('announcing', function (): void {
+    it('announces an invitation when it is sent, accepted and withdrawn', function (): void {
+        Event::fake([InvitationCreated::class, InvitationAccepted::class, InvitationRevoked::class]);
+        $invitations = app(Invitations::class);
+
+        ['token' => $token] = $invitations->invite(ada(), 'member');
+        $invitations->accept($token, ada());
+        ['invitation' => $other] = $invitations->invite(grace(), 'member');
+        $invitations->revoke($other);
+
+        Event::assertDispatched(InvitationCreated::class, 2);
+        Event::assertDispatched(InvitationAccepted::class, fn (InvitationAccepted $event): bool => $event->invitation->accepted_at !== null);
+        Event::assertDispatched(InvitationRevoked::class, fn (InvitationRevoked $event): bool => $event->invitation->is($other));
     });
 });

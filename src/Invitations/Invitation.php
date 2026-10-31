@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Noria\Keel\Invitations;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Noria\Keel\Concerns\BelongsToWorkspace;
+use Noria\Keel\Concerns\HasConfiguredKey;
 use Noria\Keel\Keel;
 
 /**
- * @property string $id
+ * @property string|int $id
  * @property string|null $workspace_id
  * @property string $channel
  * @property string $destination_hash
@@ -27,7 +27,7 @@ use Noria\Keel\Keel;
 class Invitation extends Model
 {
     use BelongsToWorkspace;
-    use HasUuids;
+    use HasConfiguredKey;
 
     protected $guarded = ['id'];
 

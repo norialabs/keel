@@ -30,6 +30,7 @@
         "illuminate/bus": "^13.0",
         "illuminate/console": "^13.0",
         "illuminate/database": "^13.0",
+        "illuminate/events": "^13.0",
         "illuminate/http": "^13.0",
         "illuminate/queue": "^13.0",
         "illuminate/support": "^13.0"

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Noria\Keel\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Cache;
+use Noria\Keel\Keel;
 
 class SchedulerHealthyCommand extends Command
 {
@@ -17,7 +17,7 @@ class SchedulerHealthyCommand extends Command
 
     public function handle(): int
     {
-        $beat = Cache::get(self::KEY);
+        $beat = Keel::cache()->get(self::KEY);
 
         if ($beat === null) {
             $this->components->error('The scheduler has not checked in.');

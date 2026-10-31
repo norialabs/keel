@@ -64,7 +64,7 @@ class KeelServiceProvider extends ServiceProvider
             $app->make(Tenancy::class),
             $app->bound(Courier::class) ? $app->make(Courier::class) : null,
         ));
-        $this->app->singleton(SocialState::class);
+        $this->app->singleton(SocialState::class, fn (): SocialState => new SocialState(Keel::cache()));
         $this->app->singleton(DumperFactory::class);
         $this->app->singleton(Backup::class);
         $this->app->singleton(Restore::class);
@@ -107,7 +107,7 @@ class KeelServiceProvider extends ServiceProvider
             return;
         }
 
-        Gate::define(self::GATE, fn (
+        Gate::define(Keel::gate(), fn (
             Authenticatable $user,
             PermissionResource $resource,
             PermissionAction $action,

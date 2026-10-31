@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Noria\Keel\Audit;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Noria\Keel\Concerns\AppendOnly;
+use Noria\Keel\Concerns\HasConfiguredKey;
 use Noria\Keel\Keel;
 
 /**
- * @property string $id
+ * @property string|int $id
  * @property string|null $workspace_id
  * @property string|null $actor_id
  * @property string $actor_type
@@ -23,7 +23,7 @@ use Noria\Keel\Keel;
 class AuditLog extends Model
 {
     use AppendOnly;
-    use HasUuids;
+    use HasConfiguredKey;
 
     public const UPDATED_AT = null;
 

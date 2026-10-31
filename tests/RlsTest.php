@@ -190,3 +190,19 @@ it('widens a connection with every requested setting or with none of them', func
         ->toThrow(TenancyMissing::class)
         ->and(DB::scalar("select current_setting('app.staff_read', true)"))->not->toBe('on');
 });
+
+it('isolates workspaces keyed on integers when the product keys them that way', function (): void {
+    config(['keel.tenancy.key_type' => 'int']);
+    Schema::create('ledgers', function ($table): void {
+        $table->id();
+        $table->unsignedBigInteger('workspace_id')->nullable();
+        $table->string('name', 64);
+    });
+    Rls::protect('ledgers');
+
+    $tenancy = app(Tenancy::class);
+    $tenancy->run('7', fn () => DB::table('ledgers')->insert(['workspace_id' => 7, 'name' => 'ours']));
+    $tenancy->run('8', fn () => DB::table('ledgers')->insert(['workspace_id' => 8, 'name' => 'theirs']));
+
+    expect($tenancy->run('7', fn (): array => DB::table('ledgers')->pluck('name')->all()))->toBe(['ours']);
+});

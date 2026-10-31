@@ -6,6 +6,7 @@ use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Gate;
 use Noria\Keel\Auth\TokenAbilities;
 use Noria\Keel\Auth\TokenCeiling;
+use Noria\Keel\Keel;
 use Noria\Keel\KeelServiceProvider;
 use Noria\Keel\Rbac\Catalog;
 use Noria\Keel\Rbac\PermissionResolver;
@@ -159,6 +160,17 @@ describe('resolving what a caller may do', function (): void {
 
         expect(Gate::forUser($user)->allows(KeelServiceProvider::GATE, [Resource::Invoice, Action::View]))->toBeTrue();
         expect(Gate::forUser($user)->allows(KeelServiceProvider::GATE, [Resource::Invoice, Action::Delete]))->toBeFalse();
+    });
+
+    it('answers under the gate name the product chose', function (): void {
+        StubPrincipals::$principal = new StubPrincipal('tenant', ['reader']);
+        StubRoles::$grants = ['reader' => ['invoice' => ['view']]];
+        config(['keel.rbac.gate' => 'can-in-workspace']);
+
+        (new KeelServiceProvider(app()))->boot();
+
+        expect(Gate::forUser(new User)->allows('can-in-workspace', [Resource::Invoice, Action::View]))->toBeTrue();
+        expect(Keel::gate())->toBe('can-in-workspace');
     });
 });
 

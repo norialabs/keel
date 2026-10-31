@@ -159,10 +159,15 @@ class Tenancy
     /** @return list<string> */
     private function declared(): array
     {
-        $gucs = Config::array('keel.tenancy.gucs', []);
-        $names = array_values(array_filter($gucs, is_string(...)));
+        $configured = [
+            $this->workspaceGuc(),
+            Config::string('keel.tenancy.staff_read_guc', 'app.staff_read'),
+            Config::string('keel.tenancy.platform_write_guc', 'app.platform_write'),
+            Config::string('keel.invitations.token_guc', 'app.invitation_token'),
+        ];
+        $listed = array_filter(Config::array('keel.tenancy.gucs', []), is_string(...));
 
-        return in_array($this->workspaceGuc(), $names, true) ? $names : [$this->workspaceGuc(), ...$names];
+        return array_values(array_unique([...$configured, ...$listed]));
     }
 
     private function workspaceGuc(): string

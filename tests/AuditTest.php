@@ -2,11 +2,16 @@
 
 declare(strict_types=1);
 
+use Illuminate\Auth\GenericUser;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Foundation\Auth\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
 use Noria\Keel\Audit\AuditLog;
 use Noria\Keel\Audit\AuditRecorder;
 use Noria\Keel\Audit\RequestContext;
+use Noria\Keel\Events\AuditRecorded;
 use Noria\Keel\Keel;
 use Noria\Keel\Tests\Fixtures\HostAuditLog;
 
@@ -83,9 +88,44 @@ it('trims a user agent long enough to overflow its column', function (): void {
 });
 
 it('records an actor from a product whose users are not keyed on uuid', function (): void {
-    Auth::shouldReceive('id')->andReturn(42);
+    Auth::setUser(new GenericUser(['id' => 42]));
 
     app(AuditRecorder::class)->record('invoice.voided');
 
     expect(AuditLog::query()->sole()->actor_id)->toBe('42');
+    expect(AuditLog::query()->sole()->actor_type)->toBe('user');
+});
+
+it('names an actor by the morph alias of its model, so two kinds of user stay apart', function (): void {
+    Relation::morphMap(['member' => User::class]);
+
+    try {
+        Auth::setUser((new User)->forceFill(['id' => 7]));
+
+        app(AuditRecorder::class)->record('invoice.voided');
+    } finally {
+        Relation::morphMap([], merge: false);
+    }
+
+    expect(AuditLog::query()->sole()->actor_type)->toBe('member');
+});
+
+it('reads the actor from the guard the product named', function (): void {
+    config([
+        'auth.guards.staff' => ['driver' => 'session', 'provider' => 'users'],
+        'keel.audit.guard' => 'staff',
+    ]);
+    Auth::guard('staff')->setUser(new GenericUser(['id' => 9]));
+
+    app(AuditRecorder::class)->record('invoice.voided');
+
+    expect(AuditLog::query()->sole()->actor_id)->toBe('9');
+});
+
+it('announces every entry it writes', function (): void {
+    Event::fake([AuditRecorded::class]);
+
+    app(AuditRecorder::class)->record('invoice.voided');
+
+    Event::assertDispatched(AuditRecorded::class, fn (AuditRecorded $event): bool => $event->entry->action === 'invoice.voided');
 });

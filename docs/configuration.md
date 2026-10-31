@@ -19,20 +19,33 @@ file; they do not all have environment variable equivalents.
 | `keel.connection` | Named Laravel connection for package models and tenancy | Application default connection |
 | `keel.table_prefix` | Prefix for package table names | Empty string |
 | `keel.tables.<name>` | Explicit name for an individual package table | Standard package name |
+| `keel.key_type` | Primary key of package tables: `uuid`, `ulid`, or `int` | `uuid` |
+| `keel.tenancy.key_type` | Type of your workspace keys: `uuid`, `ulid`, `int`, or `string` | `uuid` |
+| `keel.tenancy.column` | Name of the workspace column | `workspace_id` |
 | `keel.load_migrations` | Automatically load the package migration | `true` |
+| `keel.migrate.<name>` | Create an individual package table | `true` |
 | `keel.timestamps` | Timezone-aware (`tz`) or plain timestamps | `tz` |
 
-The package migration creates `audit_logs`, `otp_challenges`, and `invitations`. Package model
-primary keys and the default workspace columns are UUIDs. Actor identifiers are strings so
-applications can use integer or UUID user keys.
+The package migration creates `audit_logs`, `otp_challenges`, and `invitations`. Turn one off
+with `KEEL_MIGRATE_AUDIT_LOGS`, `KEEL_MIGRATE_OTP_CHALLENGES`, or `KEEL_MIGRATE_INVITATIONS` set
+to `false`; rolling back then leaves a table of that name alone.
 
-Set table names, the workspace column, and the connection before the first migration. Changing
-configuration after tables exist does not rename or alter them; add an application migration for
-schema changes.
+`keel.key_type` chooses how package rows are keyed. `uuid` generates version 7 UUIDs and `ulid`
+generates lowercase ULIDs, both of which sort by creation time; `int` uses an auto-incrementing
+big integer. The bundled `PersonalAccessToken` follows the same setting, so its table's `id`
+column must match.
 
-The migration and `BelongsToWorkspace` trait use `keel.tenancy.column`. The bundled token
-model's assignment and invitation acceptance currently access `workspace_id` directly. Using a
-different tenant column name with those integrations requires adapted application implementations.
+`keel.tenancy.key_type` must match the primary key of your workspace model. It types the
+workspace column in the package migration, the cast in row-level security policies, and the
+workspace identifiers token abilities accept. `string` accepts up to 64 letters, digits, dots,
+underscores, and hyphens, for workspaces keyed on a slug.
+
+Actor, target, inviter, and acceptor identifiers are stored as strings with no foreign keys, so
+your user and other models can use any key type.
+
+Set key types, table names, the workspace column, and the connection before the first migration.
+Changing configuration after tables exist does not rename or alter them; add an application
+migration for schema changes.
 
 For full control over the migration, publish it:
 
@@ -61,11 +74,13 @@ if your application's schema requires timestamps without timezone awareness.
 | Component | Setting or binding |
 |---|---|
 | Workspace context | `keel.tenancy.enabled`, `WorkspaceResolver`, `SetWorkspaceContext` middleware |
-| Tenant schema | `keel.tenancy.column`, `workspace_guc`, `gucs`, `unscoped_tables` |
+| Tenant schema | `keel.tenancy.column`, `key_type`, `workspace_guc`, `gucs`, `unscoped_tables` |
 | Tenant jobs | `keel.tenancy.queue`, `overlap_expires_after` |
 | Permission catalogue | `keel.rbac.resources`, `keel.rbac.actions` |
+| Permission gate name | `keel.rbac.gate`, read back with `Keel::gate()` |
 | Permission resolution | `PrincipalResolver`, `RoleRepository`, optional `PermissionCeiling` |
-| Audit recording | `keel.audit.enabled` |
+| Audit recording | `keel.audit.enabled`, `keel.audit.guard` |
+| Cache store for scheduler heartbeats and social state | `keel.cache.store` |
 | Shared log context | Optional `LogContext` binding |
 | Invitation delivery | Optional `Courier` binding |
 | OTP settings | `keel.auth.otp.length`, `ttl`, `attempts`, `throttle`, `hint` |
@@ -76,9 +91,16 @@ Keel resolves these contracts through Laravel's container. Your application impl
 contracts and registers bindings in a service provider's `register()` method. See the
 [component guide](components.md) for the expected interfaces.
 
-When changing a PostgreSQL setting name such as `workspace_guc`, update `keel.tenancy.gucs` as
-well. That list declares the settings Keel is allowed to set and must clear. Existing database
-policies refer to the names used when they were created and need an application migration too.
+Keel sets and clears the settings named by `workspace_guc`, `staff_read_guc`,
+`platform_write_guc`, and `keel.invitations.token_guc`, under whatever names you give them. List
+any other setting your own code passes to `Tenancy::withGuc()` in `keel.tenancy.gucs`; Keel
+refuses to set a setting it does not know to clear. Existing database policies refer to the
+names used when they were created, so renaming one needs an application migration too.
+
+The audit trail records the user from `keel.audit.guard`, or the default guard when it is unset.
+`actor_type` is the user model's morph class, so a morph map alias such as `member` is stored
+instead of the class name. A user that is not an Eloquent model is recorded as `user`, and no user
+at all as `system`.
 
 ## Models
 

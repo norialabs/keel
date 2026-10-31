@@ -6,6 +6,7 @@ namespace Noria\Keel\Auth;
 
 use Noria\Keel\Contracts\PermissionAction;
 use Noria\Keel\Contracts\PermissionResource;
+use Noria\Keel\Db\KeyType;
 use Noria\Keel\Rbac\Catalog;
 
 final class TokenAbilities
@@ -13,8 +14,6 @@ final class TokenAbilities
     public const ALL = '*';
 
     public const WORKSPACE_PREFIX = 'workspace:';
-
-    private const UUID = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
 
     private function __construct() {}
 
@@ -31,9 +30,9 @@ final class TokenAbilities
             }
         }
 
-        return count($found) === 1 && preg_match(self::UUID, $found[0]) === 1
-            ? strtolower($found[0])
-            : null;
+        $type = KeyType::forTenants();
+
+        return count($found) === 1 && $type->accepts($found[0]) ? $type->normalise($found[0]) : null;
     }
 
     public static function forWorkspace(string $workspaceId): string
@@ -53,7 +52,7 @@ final class TokenAbilities
         }
 
         if (str_starts_with($ability, self::WORKSPACE_PREFIX)) {
-            return preg_match(self::UUID, substr($ability, strlen(self::WORKSPACE_PREFIX))) === 1;
+            return KeyType::forTenants()->accepts(substr($ability, strlen(self::WORKSPACE_PREFIX)));
         }
 
         [$resource, $action] = array_pad(explode(':', $ability, 2), 2, null);

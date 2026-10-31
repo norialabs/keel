@@ -74,7 +74,9 @@ KEEL_AUDIT=false
 
 ### Applications using package tables
 
-Review table names and your database connection before running:
+Choose key types, table names, the workspace column, and your database connection before running.
+Package tables can be keyed on UUIDs, ULIDs, or integers, and your workspaces on UUIDs, ULIDs,
+integers, or slugs:
 
 ```bash
 php artisan migrate
@@ -102,8 +104,10 @@ $amount = $total->rate();
 
 ## Configuration
 
-Keel retains the `keel.*` configuration namespace, `KEEL_*` environment variables, and
-`keel:*` Artisan command prefix. These identify package settings and commands.
+Settings live under `keel.*`, environment variables under `KEEL_*`, and Artisan commands under
+`keel:*`. Key types, table and column names, the connection, which tables are created, models,
+the audit guard, the cache store, and the permission gate name are all configurable, and the
+package dispatches events for audit entries, sign-in codes, and invitations.
 
 The shipped country and currency defaults are `KE` and `KES`. Configure them for your application;
 the dialling-code map and currency display rules are explicit settings rather than a complete

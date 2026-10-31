@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Noria\Keel\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Noria\Keel\Keel;
 
 class SchedulerHeartbeatCommand extends Command
 {
@@ -16,7 +16,7 @@ class SchedulerHeartbeatCommand extends Command
 
     public function handle(): int
     {
-        Cache::put(
+        Keel::cache()->put(
             SchedulerHealthyCommand::KEY,
             now()->toIso8601String(),
             Config::integer('keel.scheduler.heartbeat_ttl', 300),

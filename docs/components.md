@@ -134,9 +134,9 @@ are bound. Once configured:
 use App\Enums\Action;
 use App\Enums\Resource;
 use Illuminate\Support\Facades\Gate;
-use Noria\Keel\KeelServiceProvider;
+use Noria\Keel\Keel;
 
-Gate::authorize(KeelServiceProvider::GATE, [Resource::Project, Action::Update]);
+Gate::authorize(Keel::gate(), [Resource::Project, Action::Update]);
 ```
 
 `Permissions::fromArray()` validates grant data against the configured catalogue. Role grants
@@ -159,7 +159,8 @@ app(AuditRecorder::class)->record(
 ```
 
 The recorder captures the authenticated actor, current workspace, target, metadata, reason, and
-request context. Unauthenticated work is recorded with actor type `system`. Setting
+request context. The actor comes from `keel.audit.guard`, and its type is the user model's morph
+class. Unauthenticated work is recorded with actor type `system`. Setting
 `KEEL_AUDIT=false` makes `record()` return null without writing a row.
 
 `AuditLog` rejects Eloquent instance updates and deletes through `AppendOnly`. Raw SQL and
@@ -232,11 +233,10 @@ use Noria\Keel\Auth\PersonalAccessToken;
 Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 ```
 
-Your token table must support UUID primary keys and a UUID `workspace_id` column. Keel
-does not migrate that table. The model requires exactly one `workspace:{uuid}` ability and
-derives the workspace column from it; missing, duplicate, or invalid workspace abilities cause
-`UnscopedToken` to be thrown. The bundled token model assigns `workspace_id` directly; adapt
-the model if your application uses another tenant column name.
+Your token table's `id` must match `keel.key_type`, and it needs a workspace column named by
+`keel.tenancy.column` and typed by `keel.tenancy.key_type`. Keel does not migrate that table.
+The model requires exactly one `workspace:{id}` ability and writes the workspace column from it;
+missing, duplicate, or invalid workspace abilities cause `UnscopedToken` to be thrown.
 
 `TokenAbilities::forWorkspace()` and `permission()` construct ability strings.
 `TokenCeiling` implements `PermissionCeiling` to restrict role grants to the current token's
@@ -349,3 +349,20 @@ Use `preview()` and `rows()` for paths, or `previewContent()`, `rowsContent()`, 
 `countContent()` for strings. `decode()` bounds base64 input before decoding. `uploadRules()`
 validates raw or base64 CSV content supplied as strings; it is not an uploaded-file validator.
 Use `Writer::download()` for a streamed HTTP response.
+
+## Events
+
+Keel dispatches these through Laravel's event dispatcher, from `Noria\Keel\Events`:
+
+| Event | Dispatched | Properties |
+|---|---|---|
+| `AuditRecorded` | After an audit entry is written | `entry` |
+| `OtpIssued` | After a sign-in code is stored, before it is delivered | `challenge`, `destination`, `channel` |
+| `OtpAttempted` | After every verification attempt | `destination`, `outcome` |
+| `InvitationCreated` | After an invitation is stored and handed to the courier | `invitation` |
+| `InvitationAccepted` | After an invitation is accepted | `invitation` |
+| `InvitationRevoked` | After an invitation is withdrawn | `invitation` |
+
+None carries a plain code or token. `destination` holds the normalized address, so treat a
+listener that logs it as handling personal data.
+
