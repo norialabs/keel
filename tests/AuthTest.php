@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Noria\Keel\Auth\Otp;
 use Noria\Keel\Auth\OtpChallenge;
@@ -11,7 +13,11 @@ use Noria\Keel\Auth\OtpThrottled;
 use Noria\Keel\Auth\PersonalAccessToken;
 use Noria\Keel\Auth\ProviderProfile;
 use Noria\Keel\Auth\SocialState;
+use Noria\Keel\Auth\TokenAbilities;
 use Noria\Keel\Auth\UnscopedToken;
+use Noria\Keel\Events\OtpAttempted;
+use Noria\Keel\Events\OtpIssued;
+use Noria\Keel\Identity\Channel;
 use Noria\Keel\Identity\Destination;
 use Noria\Keel\Keel;
 use Noria\Keel\Tests\Fixtures\HostOtpChallenge;
@@ -340,5 +346,65 @@ describe('a workspace scoped token', function (): void {
         }
 
         expect(PersonalAccessToken::query()->count())->toBe(0);
+    });
+
+    it('writes the workspace into the column the product renamed', function (): void {
+        Schema::table('personal_access_tokens', fn ($table) => $table->renameColumn('workspace_id', 'tenant_id'));
+        config(['keel.tenancy.column' => 'tenant_id']);
+
+        $token = mint(['workspace:01a0b000-0000-7000-8000-00000000000a']);
+
+        expect($token->getAttribute('tenant_id'))->toBe('01a0b000-0000-7000-8000-00000000000a');
+    });
+
+    it('names a workspace keyed the way the product keys its workspaces', function (string $type, string $id, ?string $read): void {
+        config(['keel.tenancy.key_type' => $type]);
+
+        expect(TokenAbilities::workspaceIn([TokenAbilities::forWorkspace($id)]))->toBe($read);
+        expect(TokenAbilities::isValid(TokenAbilities::forWorkspace($id)))->toBe($read !== null);
+    })->with([
+        'a uuid' => ['uuid', '01A0B000-0000-7000-8000-00000000000A', '01a0b000-0000-7000-8000-00000000000a'],
+        'a ulid' => ['ulid', '01ARZ3NDEKTSV4RRFFQ69G5FAV', '01arz3ndektsv4rrffq69g5fav'],
+        'an integer' => ['int', '42', '42'],
+        'a slug' => ['string', 'acme-ltd', 'acme-ltd'],
+        'an integer where a uuid is expected' => ['uuid', '42', null],
+        'a uuid where an integer is expected' => ['int', '01a0b000-0000-7000-8000-00000000000a', null],
+        'zero' => ['int', '0', null],
+        'a slug with a colon' => ['string', 'acme:ltd', null],
+    ]);
+});
+
+describe('announcing', function (): void {
+    it('announces a code it issued, without the code in it', function (): void {
+        Event::fake([OtpIssued::class]);
+
+        app(Otp::class)->issue(to('ada@example.com'), Channel::Sms);
+
+        Event::assertDispatched(OtpIssued::class, fn (OtpIssued $event): bool => $event->destination->value === 'ada@example.com'
+            && $event->channel === Channel::Sms
+            && $event->challenge->exists);
+    });
+
+    it('announces every attempt with how it went', function (): void {
+        Event::fake([OtpAttempted::class]);
+        $code = app(Otp::class)->issue(to('ada@example.com'));
+
+        app(Otp::class)->verify(to('ada@example.com'), $code === '123456' ? '654321' : '123456');
+        app(Otp::class)->verify(to('ada@example.com'), $code);
+
+        Event::assertDispatched(OtpAttempted::class, fn (OtpAttempted $event): bool => $event->outcome === OtpOutcome::Incorrect);
+        Event::assertDispatched(OtpAttempted::class, fn (OtpAttempted $event): bool => $event->outcome === OtpOutcome::Verified);
+    });
+});
+
+describe('the cache it keeps state in', function (): void {
+    it('keeps a provider round trip in the store the product named', function (): void {
+        config(['cache.stores.shared' => ['driver' => 'array'], 'keel.cache.store' => 'shared']);
+        app()->forgetInstance(SocialState::class);
+
+        $state = app(SocialState::class)->issue('github');
+        Cache::store('shared')->flush();
+
+        expect(app(SocialState::class)->claim($state))->toBeNull();
     });
 });

@@ -44,6 +44,9 @@ Cached scheduler heartbeats and social sign-in state use new keys. The first hea
 deployment restores `keel:scheduler-healthy`. Social sign-ins that are in progress during the
 deployment must start again.
 
+The name `platform` in tenancy methods such as `asPlatform()` still refers to application-wide
+operations across workspaces. It is independent of the Composer package name.
+
 ## Database
 
 Table names, the tenant column, and the `app.workspace_id`, `app.user_id`, `app.staff_read`, and
@@ -69,5 +72,18 @@ set migration = '2026_09_19_000001_create_keel_tables'
 where migration = '2026_09_19_000001_create_noria_tables';
 ```
 
-The name `platform` in tenancy methods such as `asPlatform()` still refers to application-wide
-operations across workspaces. It is independent of the Composer package name.
+## Audit actors
+
+New audit entries record `actor_type` as the user model's morph class, such as
+`App\Models\User` or its morph map alias, instead of `user`. Entries already written keep
+`user`. New installations create `actor_type` 256 characters wide; widen an existing column if
+your class names are longer than its current width:
+
+```sql
+alter table audit_logs alter column actor_type type varchar(256);
+```
+
+## Settings Keel clears
+
+`keel.tenancy.gucs` now lists only the settings your own code adds. Keel declares its own four
+from their configured names, so a published configuration that still lists them works unchanged.

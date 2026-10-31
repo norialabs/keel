@@ -105,6 +105,15 @@ it('takes back a widening setting after the work that needed it', function (): v
     expect(guc('app.platform_write'))->toBe('');
 });
 
+it('clears a widening setting the product renamed without being told its name twice', function (): void {
+    config(['keel.tenancy.staff_read_guc' => 'app.read_everything']);
+
+    $during = app(Tenancy::class)->asStaff(fn (): string => guc('app.read_everything'));
+
+    expect($during)->toBe('on');
+    expect(guc('app.read_everything'))->toBe('');
+});
+
 it('reads the workspace setting name from config, so a product can rename it', function (): void {
     config([
         'keel.tenancy.workspace_guc' => 'app.tenant',

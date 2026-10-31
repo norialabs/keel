@@ -8,6 +8,7 @@ use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Noria\Keel\Db\KeyType;
 use Noria\Keel\Keel;
 use PDOException;
 use RuntimeException;
@@ -159,7 +160,9 @@ class Rls
     {
         $guc = Config::string('keel.tenancy.workspace_guc', 'app.workspace_id');
 
-        return self::column()." = nullif(current_setting('{$guc}', true), '')::uuid";
+        $type = KeyType::forTenants()->postgresType();
+
+        return self::column()." = nullif(current_setting('{$guc}', true), '')::{$type}";
     }
 
     private static function column(): string

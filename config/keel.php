@@ -13,7 +13,19 @@ return [
 
     'table_prefix' => env('KEEL_TABLE_PREFIX', ''),
 
+    'key_type' => env('KEEL_KEY_TYPE', 'uuid'),
+
     'load_migrations' => (bool) env('KEEL_LOAD_MIGRATIONS', true),
+
+    'migrate' => [
+        'audit_logs' => (bool) env('KEEL_MIGRATE_AUDIT_LOGS', true),
+        'otp_challenges' => (bool) env('KEEL_MIGRATE_OTP_CHALLENGES', true),
+        'invitations' => (bool) env('KEEL_MIGRATE_INVITATIONS', true),
+    ],
+
+    'cache' => [
+        'store' => env('KEEL_CACHE_STORE'),
+    ],
 
     'timestamps' => env('KEEL_TIMESTAMPS', 'tz'),
 
@@ -21,14 +33,11 @@ return [
         'enabled' => (bool) env('KEEL_TENANCY', true),
 
         'column' => env('KEEL_TENANT_COLUMN', 'workspace_id'),
+        'key_type' => env('KEEL_TENANT_KEY_TYPE', 'uuid'),
         'workspace_guc' => env('KEEL_TENANT_GUC', 'app.workspace_id'),
 
         'gucs' => [
-            'app.workspace_id',
             'app.user_id',
-            'app.staff_read',
-            'app.platform_write',
-            'app.invitation_token',
         ],
 
         'staff_read_guc' => env('KEEL_STAFF_READ_GUC', 'app.staff_read'),
@@ -44,12 +53,14 @@ return [
     ],
 
     'rbac' => [
+        'gate' => env('KEEL_GATE', 'workspace-permission'),
         'resources' => null,
         'actions' => null,
     ],
 
     'audit' => [
         'enabled' => (bool) env('KEEL_AUDIT', true),
+        'guard' => env('KEEL_AUDIT_GUARD'),
     ],
 
     'http' => [

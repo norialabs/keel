@@ -7,7 +7,10 @@ namespace Noria\Keel\Auth;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Noria\Keel\Events\OtpAttempted;
+use Noria\Keel\Events\OtpIssued;
 use Noria\Keel\Identity\Channel;
 use Noria\Keel\Identity\Destination;
 use Noria\Keel\Identity\KeyedHash;
@@ -34,7 +37,7 @@ class Otp
 
         $this->pending($to)->delete();
 
-        Keel::otpChallengeModel()::query()->create([
+        $challenge = Keel::otpChallengeModel()::query()->create([
             'destination_hash' => $this->hash->of($to->value),
             'destination_hint' => $to->hint(Config::string('keel.auth.otp.hint', 'masked')),
             'channel' => $channel->value,
@@ -43,10 +46,21 @@ class Otp
             'expires_at' => Carbon::now()->addMinutes(Config::integer('keel.auth.otp.ttl', 10)),
         ]);
 
+        Event::dispatch(new OtpIssued($challenge, $to, $channel));
+
         return $code;
     }
 
     public function verify(Destination $to, string $code): OtpOutcome
+    {
+        $outcome = $this->check($to, $code);
+
+        Event::dispatch(new OtpAttempted($to, $outcome));
+
+        return $outcome;
+    }
+
+    private function check(Destination $to, string $code): OtpOutcome
     {
         $challenge = $this->pending($to)->latest('created_at')->first();
 

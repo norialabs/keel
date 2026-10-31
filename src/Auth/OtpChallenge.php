@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Noria\Keel\Auth;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Noria\Keel\Concerns\HasConfiguredKey;
 use Noria\Keel\Keel;
 
 /**
- * @property string $id
+ * @property string|int $id
  * @property string $destination_hash
  * @property string|null $destination_hint
  * @property string $channel
@@ -22,7 +22,7 @@ use Noria\Keel\Keel;
  */
 class OtpChallenge extends Model
 {
-    use HasUuids;
+    use HasConfiguredKey;
 
     protected $guarded = ['id'];
 

@@ -7,8 +7,12 @@ namespace Noria\Keel\Invitations;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Noria\Keel\Contracts\Courier;
+use Noria\Keel\Events\InvitationAccepted;
+use Noria\Keel\Events\InvitationCreated;
+use Noria\Keel\Events\InvitationRevoked;
 use Noria\Keel\Identity\Channel;
 use Noria\Keel\Identity\Destination;
 use Noria\Keel\Identity\KeyedHash;
@@ -55,6 +59,8 @@ class Invitations
         ]);
 
         $this->courier?->deliver($to, $channel, 'invitation', [...$context, 'token' => $token]);
+
+        Event::dispatch(new InvitationCreated($invitation));
 
         return ['invitation' => $invitation, 'token' => $token];
     }
@@ -109,7 +115,7 @@ class Invitations
             throw InvitationOutcome::wrongRecipient();
         }
 
-        $workspaceId = $invitation->workspace_id;
+        $workspaceId = $invitation->getAttribute(Config::string('keel.tenancy.column', 'workspace_id'));
 
         $mark = function () use ($invitation, $acceptorId): Invitation {
             $invitation->forceFill(['accepted_at' => Carbon::now(), 'accepted_by' => $acceptorId])->save();
@@ -117,7 +123,13 @@ class Invitations
             return $invitation;
         };
 
-        return $workspaceId === null ? $mark() : $this->tenancy->run($workspaceId, $mark);
+        $accepted = is_scalar($workspaceId) && $workspaceId !== ''
+            ? $this->tenancy->run((string) $workspaceId, $mark)
+            : $mark();
+
+        Event::dispatch(new InvitationAccepted($accepted));
+
+        return $accepted;
     }
 
     public function revoke(Invitation $invitation): Invitation
@@ -127,6 +139,8 @@ class Invitations
         }
 
         $invitation->forceFill(['revoked_at' => Carbon::now()])->save();
+
+        Event::dispatch(new InvitationRevoked($invitation));
 
         return $invitation;
     }

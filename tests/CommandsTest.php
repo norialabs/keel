@@ -40,6 +40,16 @@ describe('the scheduler healthcheck', function (): void {
 
         expect(Cache::get(SchedulerHealthyCommand::KEY))->not->toBeNull();
     });
+
+    it('keeps the beat in the store the product named, so every server sees one scheduler', function (): void {
+        config(['cache.stores.shared' => ['driver' => 'array'], 'keel.cache.store' => 'shared']);
+
+        $this->artisan('keel:scheduler-heartbeat')->assertSuccessful();
+
+        expect(Cache::store('shared')->get(SchedulerHealthyCommand::KEY))->not->toBeNull();
+        expect(Cache::get(SchedulerHealthyCommand::KEY))->toBeNull();
+        $this->artisan('keel:scheduler-healthy')->assertSuccessful();
+    });
 });
 
 describe('pruning sign-in codes', function (): void {
