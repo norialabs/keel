@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
-use NoriaLabs\Platform\Contracts\RoleRepository;
-use NoriaLabs\Platform\Rbac\Permissions;
+use Noria\Keel\Contracts\RoleRepository;
+use Noria\Keel\Rbac\Permissions;
 
 class StubRoles implements RoleRepository
 {

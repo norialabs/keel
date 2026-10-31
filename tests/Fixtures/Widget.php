@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use NoriaLabs\Platform\Concerns\BelongsToWorkspace;
+use Noria\Keel\Concerns\BelongsToWorkspace;
 
 class Widget extends Model
 {

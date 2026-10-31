@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Contracts;
+namespace Noria\Keel\Contracts;
 
 interface DatabaseReplacer
 {

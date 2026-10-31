@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tenancy;
+namespace Noria\Keel\Tenancy;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Container\Container;
@@ -31,7 +31,7 @@ abstract class TenantJob implements ShouldQueue
     {
         return [
             (new WithoutOverlapping($this->lockKey()))
-                ->expireAfter(Config::integer('noria.tenancy.overlap_expires_after', 3600)),
+                ->expireAfter(Config::integer('keel.tenancy.overlap_expires_after', 3600)),
         ];
     }
 
@@ -46,7 +46,7 @@ abstract class TenantJob implements ShouldQueue
 
     protected function lane(): string
     {
-        return Config::string('noria.tenancy.queue', 'default');
+        return Config::string('keel.tenancy.queue', 'default');
     }
 
     protected function lockKey(): string

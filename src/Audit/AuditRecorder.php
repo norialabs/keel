@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Audit;
+namespace Noria\Keel\Audit;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
-use NoriaLabs\Platform\Platform;
-use NoriaLabs\Platform\Tenancy\Tenancy;
+use Noria\Keel\Keel;
+use Noria\Keel\Tenancy\Tenancy;
 
 class AuditRecorder
 {
@@ -24,14 +24,14 @@ class AuditRecorder
         array $metadata = [],
         ?string $reason = null,
     ): ?AuditLog {
-        if (! Config::boolean('noria.audit.enabled', true)) {
+        if (! Config::boolean('keel.audit.enabled', true)) {
             return null;
         }
 
         $actorId = Auth::id();
 
-        return Platform::auditLogModel()::query()->create([
-            Config::string('noria.tenancy.column', 'workspace_id') => $this->tenancy->id(),
+        return Keel::auditLogModel()::query()->create([
+            Config::string('keel.tenancy.column', 'workspace_id') => $this->tenancy->id(),
             'actor_id' => $actorId === null ? null : (string) $actorId,
             'actor_type' => $actorId === null ? 'system' : 'user',
             'action' => $action,

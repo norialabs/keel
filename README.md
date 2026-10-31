@@ -1,399 +1,129 @@
-# norialabs/platform
+# Keel
 
-[![CI](https://github.com/norialabs/platform/actions/workflows/ci.yml/badge.svg)](https://github.com/norialabs/platform/actions/workflows/ci.yml)
-[![Packagist](https://img.shields.io/packagist/v/norialabs/platform)](https://packagist.org/packages/norialabs/platform)
+[![CI](https://github.com/norialabs/keel/actions/workflows/ci.yml/badge.svg)](https://github.com/norialabs/keel/actions/workflows/ci.yml)
+[![Packagist](https://img.shields.io/packagist/v/norialabs/keel)](https://packagist.org/packages/norialabs/keel)
 
-The chassis every Noria Laravel product sits on. Built for our own products and pinned to
-Laravel 13, because we control every consumer - but public, and MIT, so nothing here is a secret
-you have to take on trust. Runs on PHP 8.3, 8.4 and 8.5.
+Modular application infrastructure for Laravel. Keel provides workspace tenancy, permissions,
+audit logging, authentication utilities, invitations, and database operations, alongside HTTP,
+money, and CSV components.
 
-Extracted from zana and the CRM, which had been solving the same eight problems twice. Where the
-two had diverged, the better implementation won and the other one's extras were folded in.
+Use Keel in any Laravel application. You supply your application's models, authorization rules,
+and delivery providers through contracts and configuration. No external account or service is
+required.
+
+## Requirements
+
+- PHP 8.3 or newer and Laravel 13. CI covers PHP 8.3, 8.4, and 8.5.
+- PostgreSQL for row-level security and database rebuilds. Other components can be used without it.
+- Laravel Sanctum when using the optional workspace-scoped token model.
+- PHP's `intl` extension for currency formatting, and `sodium` for encrypted backups.
+- Database client tools when using database operations; see [operations](docs/operations.md).
+
+## Components
+
+| Component | Capabilities | Integration required |
+|---|---|---|
+| Tenancy | Workspace context, PostgreSQL policies, tenant-aware jobs | Workspace resolver, middleware, application table policies |
+| Permissions | Resource/action enums, role grants, permission ceilings | Application enums, principal resolver, role repository |
+| Audit | Actor, workspace, target, request context, append-only model | Call the recorder; add database protections where required |
+| Identity and authentication | Address normalization, keyed hashes, OTP verification, social state | User lookup, message delivery, routes, login flow |
+| Tokens | Workspace-scoped Sanctum model and permission abilities | Sanctum, compatible token table, model registration |
+| Invitations | Expiring tokens, recipient checks, revocation | Membership creation; optional delivery contract |
+| Database operations | Backups, retention, encryption, restore, PostgreSQL rebuild | Storage disk, database tools and privileges |
+| HTTP and errors | Security headers, trusted proxies, static error pages | Middleware registration, application views/assets |
+| Money | Integer amounts, currency checks, formatting, validation | Currency and display settings |
+| CSV | Preview, streamed rows/exports, upload validation | Application import/export flow |
+
+Read the [component guide](docs/components.md) for examples and integration contracts.
 
 ## Install
 
 ```bash
-composer require norialabs/platform
-php artisan vendor:publish --tag=noria-config
+composer require norialabs/keel
+php artisan vendor:publish --tag=keel-config
+```
+
+Laravel discovers `Noria\Keel\KeelServiceProvider` automatically. Settings are published to
+`config/keel.php`. All package classes use the `Noria\Keel\` namespace.
+
+Before migrating, choose which components your application needs. The provider registers services
+and commands, and loads the package migration by default. That migration creates `audit_logs`,
+`otp_challenges`, and `invitations`; it does not create users, workspaces, roles, memberships,
+or a Sanctum token table.
+
+Tenancy and audit recording are enabled in configuration by default. HTTP middleware, message
+delivery, and application-specific permission bindings require explicit setup. PostgreSQL policies
+and database triggers must be added in your application's migrations; installing Keel alone does
+not establish tenant isolation.
+
+### Applications without PostgreSQL tenancy
+
+Set this in your application's `.env` before using services that manage workspace context:
+
+```dotenv
+KEEL_TENANCY=false
+```
+
+If you only need components that do not use package tables, such as CSV, money, or HTTP middleware,
+also disable automatic migration loading and audit recording:
+
+```dotenv
+KEEL_LOAD_MIGRATIONS=false
+KEEL_AUDIT=false
+```
+
+### Applications using package tables
+
+Review table names and your database connection before running:
+
+```bash
 php artisan migrate
 ```
 
-Add to the root `composer.json` while developing:
+For PostgreSQL, align the connection's `timezone` with `config('app.timezone')` before migrating.
+See [database configuration](docs/configuration.md#database-and-migrations).
 
-```json
-{ "repositories": [{ "type": "path", "url": "../packages/laravel/platform" }] }
-```
+For workspace isolation, continue with [tenancy setup](docs/components.md#workspace-tenancy).
 
-## Modules
+### Quick example
 
-Every module is off unless the product wires it, and each is independent. The marketing site can
-take `Http` and `Db` without inheriting a Postgres dependency it has no use for.
-
-### Tenancy
-
-Isolation in the database, not in a global scope: a forgotten `where`, a raw query or a console
-command cannot step around a policy.
+The money component can be used without package tables or application model bindings:
 
 ```php
-// in a migration
-Rls::protect('invoices', staffRead: true);
-Rls::protectAllowingGlobal('templates');   // workspace rows plus platform-wide ones
-Rls::protectTrail('auth_events');          // written before a workspace is known
-Rls::appendOnly('audit_logs');             // a trigger, not a policy
+use Noria\Keel\Money\Money;
+
+$unitPrice = Money::fromMajor('12.50', 'USD');
+$total = $unitPrice->times(3);
+$amount = $total->rate();
 ```
 
-```php
-$tenancy->run($workspaceId, fn () => $this->work());
-$tenancy->asStaff(fn () => Workspace::count());     // an operator screen
-$tenancy->asPlatform(fn () => $seeder->run());      // the sanctioned platform write
-```
+`$amount` is `"37.50"`. Money uses a fixed storage scale of 100; review the
+[money component](docs/components.md#money) before choosing it for your currency requirements.
 
-**Every setting has to be declared in `noria.tenancy.gucs`**, because `clear()` resets exactly
-that list and pushing one that is not on it throws. Two of the settings widen what a connection
-can see rather than narrowing it, and the unwind is allowed to fail - so a pooled connection still
-holding `staff_read` would read every workspace for every request after. A setting `clear()` does
-not know about is a setting that outlives the request that set it.
+## Configuration
 
-The host implements `WorkspaceResolver` and the middleware does the rest. `terminate()` is not
-optional.
+Keel retains the `keel.*` configuration namespace, `KEEL_*` environment variables, and
+`keel:*` Artisan command prefix. These identify package settings and commands.
 
-Models use `BelongsToWorkspace`, which stamps the workspace as a row is created. Without it every
-insert has to name its own, and the one that forgets is refused by the policy's `with check` - or,
-on a nullable column, writes an orphan nobody can read again.
+The shipped country and currency defaults are `KE` and `KES`. Configure them for your application;
+the dialling-code map and currency display rules are explicit settings rather than a complete
+internationalization database. See [configuration](docs/configuration.md).
 
-`php artisan noria:tenancy-check` reports every way one workspace could read another: a role
-that is superuser or holds BYPASSRLS, a tenant table with no policy, a policy the table owner is
-still exempt from. Run it at boot, on a clock, and in CI.
+## Documentation
 
-### Rbac
+- [Components and integration contracts](docs/components.md)
+- [Configuration, migrations, and customization](docs/configuration.md)
+- [Database operations and deployment tasks](docs/operations.md)
+- [Upgrading from Platform](docs/upgrading.md)
+- [Contributing and running tests](CONTRIBUTING.md)
 
-One gate for the whole application. The catalogue is the product's own enums - zana grants over
-meters and tariffs, the CRM over deals and accounts - so the package validates against them and
-never ships them.
+## Support and contributions
 
-```php
-enum Resource: string implements PermissionResource { /* value, label(), actions(), supports() */ }
-enum Action: string implements PermissionAction { /* value, label() */ }
-```
+Report reproducible bugs or propose improvements through
+[GitHub issues](https://github.com/norialabs/keel/issues). Include your PHP, Laravel, and
+database versions, the component involved, and a minimal example. Pull requests are welcome;
+see [the contribution guide](CONTRIBUTING.md) for local setup and checks.
 
-```php
-Gate::authorize(PlatformServiceProvider::GATE, [Resource::Invoice, Action::Delete]);
-```
+## License
 
-A product with more than one side implements `ScopedPermissionResource` instead, and
-`Catalog::forScope()` and `$permissions->catalog($scope)` narrow to it. Without that, a settings
-screen listing every resource offers a tenant admin the platform ledger. A side may be named by a
-plain string or by the product's own backed enum - `scope()` returns `string|BackedEnum`, so a
-product that already types its scopes keeps that type rather than stringifying at the boundary.
-
-`Permissions` is a value object, not an array: the document was written by a request body or by an
-older version of the class, and both are untrusted on the way in. It refuses a resource the product
-does not have, a verb it does not have, and a verb the resource does not admit.
-
-The ceiling is applied after the roles are merged and never before: a role granting more than the
-token allows is not an error, it is a role being exercised through a narrower door.
-
-The host binds `PrincipalResolver` and `RoleRepository`, and optionally `PermissionCeiling`. The
-gate is registered only when the first two are bound, so a product that has not adopted RBAC gets
-its own failure rather than one from inside this package.
-
-### Log
-
-`Logger::app/auth/backup/exception` with the context scrubbed first. Keys are normalised before
-matching, so `Api-Key`, `api_key` and `apikey` are one key, and suffixes catch the prefixed
-variants an exact list misses. A product adds its own through `noria.log.*`, however it spells
-them, and never loses the defaults.
-
-Masked rather than dropped: a support ticket saying the token ended `9f` is answerable, one saying
-`[redacted]` is not.
-
-This is the front of the pipe, not the transport. It scrubs and hands off to whatever channel the
-product configured, so it composes with `norialabs/cloudwatch` rather than replacing it:
-
-```
-Logger::auth('otp issued', ['phone' => '254712345678'])   scrubbed here
-        v
-Log::channel('auth')                                      Laravel
-        v
-'auth' => ['driver' => 'cloudwatch', ...]                 laravel-cwl ships it
-```
-
-Do not write a CloudWatch channel of your own - `laravel-cwl` is that, and this package
-deliberately carries no handler, no driver and no AWS SDK, because every product would then pull
-it to get a redacted log line. A channel this package names that the product has not defined falls
-back to the default one, so `auth` and `backup` are optional.
-
-### Audit
-
-Append-only, outside tenancy, and the trail outlives the workspace it describes. One
-`AuditRecorder`, one shared request id so a row and a log line written seconds apart join up.
-
-### Identity
-
-`Destination` is an email address or a phone number normalised to the one spelling everything else
-stores and hashes. Every path that identifies a person by a channel goes through it, because two
-spellings of one address that hash differently are two accounts for one person. `Phone` puts a
-number in E.164 against a dialling code from config, so a new market is a config line.
-
-`KeyedHash` is keyed SHA-256, for a value the system must look up and must never read back. The
-key is what makes it unguessable - a plain digest of a Kenyan mobile is 10^8, seconds of work -
-and it is not in the database.
-
-Both a destination and a token are stored hashed, with a masked hint beside them: enough to
-recognise which of your addresses was used, never enough to reconstruct one you have not seen.
-
-### Auth
-
-Issuing and checking a one-time code, and the mechanics of a provider round trip. No user lookup,
-no mail, no session, no routes: those differ per product and these do not.
-
-Neither the code nor the address it went to is kept in clear, so a dump of the table signs nobody
-in and names nobody. Attempts are counted on the row rather than in the cache, issuing cancels
-whatever was outstanding so the newest message is always the one that works, and a resend inside
-`noria.auth.otp.throttle` throws `OtpThrottled` carrying the wait.
-
-`SocialState` mints and claims the nonce that binds a provider round trip to the browser that
-started it - stateless Socialite sends no state parameter at all - and records who began it,
-because that is the only moment the intent is known: begun by nobody is a sign-in, begun by
-somebody is a link. Single use, keyed by hash. `ProviderProfile` normalises what came back and
-keeps no provider token; `email_verified` and `verified_email` are the same answer and absent
-means no.
-
-### Tokens
-
-`PersonalAccessToken` is Sanctum's, carrying a real tenant column. The workspace is parsed out of
-the abilities on the way in, and **a token that names none never reaches the table** - enforced on
-the model rather than at the caller, so no controller, job or command can mint a token spanning
-every workspace by forgetting a line. A token naming two workspaces is as unscoped as one naming
-none.
-
-`TokenAbilities` is the vocabulary: one `workspace:{uuid}`, then `{resource}:{action}` pairs the
-catalogue supports, or `*`. `TokenCeiling` reads those abilities as a `Permissions` document and
-is the `PermissionCeiling` most products want - a token narrows a role and can never widen one.
-
-Register it yourself with `Sanctum::usePersonalAccessTokenModel()`; the package does not, because
-a product may not use Sanctum at all. Sanctum is a suggested dependency, not a required one.
-
-### Invitations
-
-One open invitation per destination per workspace, a hashed single-use token, a deadline, and the
-answer that the person accepting is the person invited - a leaked link must not become an account
-in somebody else's workspace. `invite()` takes the workspace it is for and falls back to the one
-in hand, so an operator can invite into a workspace they are not currently inside without
-withdrawing the invitation another workspace is still waiting on.
-
-What a role means and who becomes a member stay with the product: `accept()` marks the invitation
-used inside its workspace and hands it back for the caller to write the membership from. Delivery
-is the `Courier` contract, because the wording, the template and the provider are the product's.
-
-A token is read through a policy keyed on `noria.invitations.token_guc` rather than through
-tenancy, because somebody accepting has not joined a workspace yet:
-
-```php
-Rls::allowLookupByGuc('invitations', 'token_hash', 'app.invitation_token');
-```
-
-### Db
-
-`noria:backup`, `noria:restore`, `noria:rebuild`, and a dumper per driver. `register()`
-takes a product's own.
-
-**Backups need a role that bypasses row level security.** `pg_dump` run as an RLS-constrained role
-writes a file that looks entirely normal and holds no rows, and nobody finds out until a restore.
-The preflight refuses rather than letting that file exist, so point `noria.db.admin_connection`
-at a role created with `bypassrls`.
-
-Two tiers, not one retention number: an hourly dump answers the mistake somebody made this
-morning, a daily one answers the corruption nobody noticed for a fortnight, and keeping a
-fortnight of hourlies to get the second costs fourteen times the storage. The first dump after
-`tiers.daily.hour` is promoted; the rest of the day stays hourly. A sweep that fails is logged and
-does not fail the run - the dump is already safe, and turning a storage bill into a missing backup
-would be the worse trade. Uploads and listings retry, because on object storage a connection
-failure and a rejection look identical once the disk swallows the reason.
-
-`restore --database=` restores beside the live database rather than over it, creating it and
-granting the application role in: a rehearsal that proves the dump before anybody bets on it. The
-drop of what is there and the load of the dump run in one transaction, so a dump that fails half
-way leaves the database exactly as it was, neither emptied nor half loaded.
-
-**Set `noria.db.encryption_key` and every dump is encrypted before it leaves the machine.** It
-takes 32 bytes written as `base64:<key>` (`openssl rand -base64 32`), and seals the dump with
-libsodium's XChaCha20-Poly1305 stream, so whoever holds the bucket credentials holds ciphertext.
-Sealed dumps end in `.enc` and restore opens them with the same key; a dump that was altered, cut
-short or sealed under another key is refused rather than loaded. Without a key nothing changes, and
-dumps taken before a key was set still restore. Keep the key somewhere other than the bucket: a
-backup you cannot decrypt is not a backup.
-
-**A dump names the extensions it needs, and the target is equipped before it is read.** Those named
-by `CREATE EXTENSION` are installed as the restoring role first, and anything that role may not
-install - pgvector is the common one, because it is not a trusted extension - goes through
-`noria.db.superuser_connection`. Without one configured the restore refuses and prints the
-statements to run by hand, rather than failing on the dump's first line with a database half made.
-A target that already has them costs nothing: only what is actually missing is installed, so the
-second rehearsal into the same database needs no superuser at all.
-
-`COMMENT ON EXTENSION` comes off on the way in. `pg_dump` writes one per extension and only the
-owner may re-issue it, which the restoring role is not when a superuser installed it - and under
-`ON_ERROR_STOP` that one line is the difference between a restore and nothing. Dropping it at read
-time is what lets a dump already sitting on the disk be restored, rather than only the ones taken
-after this was noticed.
-
-`noria:rebuild` exists because migrations edited in place rather than added to leave a
-long-lived database behind for good - `migrate` sees every file already run, and the gap only
-surfaces as a missing relation somewhere deep inside a request. It runs the migrations against an
-empty probe database first and compares: a table or column the migrations no longer define is
-dropped. When it still holds rows, the untouched copy is first archived as a full `-retired.dump`
-in the working directory, kept after the run, and the report names every table and column that
-went with the count it held, so nothing is lost quietly. A type change, a narrowing, or a new
-`not null` column with no default still refuses to proceed. Then it copies, dumps, rebuilds from
-the migrations, reloads, and verifies every table row for row against the copy before dropping it. Constraints added `NOT VALID` come off for the
-reload and go back on afterwards, still not validated, because reloading grandfathered rows
-through them would fail. Nothing is deleted, and if any step fails the error says how to swap the
-copy back.
-
-`noria:scheduler-heartbeat` on the schedule and `noria:scheduler-healthy` as the container
-healthcheck: a scheduler that is running but never firing looks identical to a healthy one from
-outside.
-
-### Http
-
-`SecurityHeaders` is config-driven, because a product that embeds a widget needs to relax one
-directive without dropping the middleware. `TrustedProxies` returns null by default rather than
-`*`: a container reached only through its own proxy should say so, and one that is not should not
-believe forwarded headers at all.
-
-### Errors
-
-`noria:build-error-pages` renders the gateway views to static files the edge can serve. A 502
-or a 504 means the application is not answering, so the page for it cannot be rendered by the
-application and its stylesheet cannot be fetched either - both are baked in ahead of time.
-
-### Timestamps
-
-`noria.timestamps` is `tz` by default, so the package's columns are `timestamptz`.
-
-That needs the connection to agree with the application. Eloquent writes a naive
-`Y-m-d H:i:s`, and Postgres reads it into a `timestamptz` using the **session** timezone - so a
-server sitting on `Africa/Nairobi` under an application on UTC stores every moment three hours
-early. Nothing errors; a sign-in code is simply born expired, and it only reproduces on the one
-machine whose server has that default.
-
-```php
-// config/database.php
-'timezone' => env('DB_TIMEZONE', env('APP_TIMEZONE', 'UTC')),
-```
-
-The migration refuses without it, and `noria:tenancy-check` reports it afterwards, because a
-connection added later would otherwise go unnoticed until the next migration. Set
-`noria.timestamps` to `plain` for a host whose other tables are not timezone aware.
-
-### Money
-
-Integers throughout: a float cannot hold a third of a shilling and a sum of floats does not
-reconcile. Mixing currencies throws.
-
-**Minor is always hundredths of the major unit**, whatever the currency displays. The shilling
-shows no decimals and is still stored in hundredths, because a tariff of 2.75 per unit has to
-survive being multiplied by a meter reading before anything rounds it for a document. Tying
-storage to the displayed precision is what rounds that 2.75 to 3 and bills the wrong number.
-
-Fraction digits are therefore a display decision, per currency in `noria.money.fraction_digits`,
-falling back to `noria.money.digits` and capped at two. Each formatter says which it wants:
-
-```php
-$price->format();            // Ksh 3 - the local symbol, at the currency's own precision
-$price->document();          // 3     - bare, for a column that has its own alignment
-$price->rate();              // 2.75  - bare, always two decimals
-$price->formatUnitPrice();   // Ksh 2.75 - a unit price always shows both
-```
-
-The locale is pinned per currency, never read from `app.locale`. ICU renders KES as `KES` under
-`en` and `Ksh` under `en_KE`, so leaving it to configuration means a deploy that sets a locale
-silently rewrites every amount in the product. The default is `en_<country>` taken off the
-currency code, which is right wherever the code names its country - `noria.money.locales` carries
-the ones that do not, the euro being the obvious one.
-
-`fromMajor` takes a **string** and parses it rather than casting through a float, because
-`(float) 'twelve'` is a silent zero and a silent zero is an invoice nobody queries until month
-end. A third decimal rounds the second rather than being dropped. `times()` accepts a fractional
-quantity, since a meter reading or a part hour is one.
-
-`checkedMultiply` takes the product as a float and rounds once at the end, then refuses anything
-outside `noria.money.max_minor` - so an amount that ran away is rejected rather than returned
-wrong. `rules()` and `majorRules()` are the validation rules for the two shapes an amount arrives
-in: already in minor units, or as a string somebody typed.
-
-### Csv
-
-`Reader` handles the file somebody actually has - a BOM from Excel, semicolons from an older
-export, padded and duplicated headers - and yields rows numbered the way the spreadsheet shows.
-`Writer` streams, and defuses a cell a spreadsheet would run as a formula.
-
-An upload arrives in a request body rather than as a path, so `previewContent`, `rowsContent` and
-`countContent` read the same file already in memory. `decode` bounds a base64 payload **before**
-decoding it - a caller that decodes first has already allocated whatever was sent - and
-`uploadRules` bounds both shapes it arrives in.
-
-## Customising
-
-| Knob | How |
-|---|---|
-| Database | `noria.connection` |
-| Table names | `noria.table_prefix`, or `noria.tables.<name>` for one |
-| Models | `Platform::useAuditLogModel(...)`, `useOtpChallengeModel(...)`, `useInvitationModel(...)` |
-| Hash key, country, dialling codes | `noria.identity.*` |
-| Invitation deadline and lookup setting | `noria.invitations.*` |
-| Tenant column and settings | `noria.tenancy.column`, `.workspace_guc`, `.gucs` |
-| Tables outside tenancy | `noria.tenancy.unscoped_tables` |
-| RBAC catalogue | `noria.rbac.resources`, `.actions` |
-| CSP directives | `noria.http.security_headers.directives` |
-| Currency and minor units | `noria.money.*` |
-| Backup disk, tiers, retention, retries | `noria.db.*` |
-| The key dumps are encrypted with | `noria.db.encryption_key` |
-| The role dumps and restores run as | `noria.db.admin_connection` |
-| The role that may install an untrusted extension | `noria.db.superuser_connection` |
-| Tables a rebuild does not carry | `noria.db.rebuild.unrestored` |
-| Checks a rebuild ends on | `noria.db.rebuild.verify_commands` |
-| OTP length, TTL, attempts, resend wait | `noria.auth.otp.*` |
-| Static error page codes, view, stylesheet | `noria.errors.*` |
-| Extra redaction keys | `noria.log.*` |
-| Trusted proxies | `noria.http.trusted_proxies` + the `TrustProxies` middleware |
-| Scheduler heartbeat window | `noria.scheduler.heartbeat_ttl` |
-
-`actor_id` on the trail is a string, not a uuid: the package cannot know the host's user model,
-and a product still keyed on bigint would have every write refused. The tenant column is read from
-`noria.tenancy.column` in the package's own migration too, so renaming it renames it everywhere.
-
-Turn a module off with `noria.tenancy.enabled` or `noria.audit.enabled`. Publish and edit the
-migrations with `--tag=noria-migrations`, then set `NORIA_LOAD_MIGRATIONS=false` or every
-table is created twice.
-
-## Testing against it
-
-The isolation tests need Postgres **and** a role that cannot ignore a policy. Without one they skip
-rather than passing against tables that are wide open:
-
-```bash
-psql postgres -c "create role platform_test login password 'platform_test' nosuperuser nobypassrls"
-psql postgres -c "create database platform_test owner platform_test"
-
-NORIA_TEST_PG="pgsql://platform_test:platform_test@127.0.0.1:5432/platform_test" vendor/bin/pest
-```
-
-The dump and restore tests need a second role as well, one that may bypass row level security,
-and they skip without it rather than passing against a file that would have come back empty:
-
-```bash
-psql postgres -c "create role platform_admin login password 'platform_admin' nosuperuser bypassrls createdb in role platform_test"
-
-NORIA_TEST_PG_ADMIN="pgsql://platform_admin:platform_admin@127.0.0.1:5432/platform_test" vendor/bin/pest
-```
-
-Restoring a dump that names an untrusted extension needs a superuser, and those tests skip without
-one rather than passing against a dump that named nothing:
-
-```bash
-NORIA_TEST_PG_SUPERUSER="pgsql://you@127.0.0.1:5432/platform_test" vendor/bin/pest
-```
-
-Without `NORIA_TEST_PG` the suite runs on SQLite and everything Postgres-only skips.
+Keel is available under the [MIT license](LICENSE).

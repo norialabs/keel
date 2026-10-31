@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Log;
+namespace Noria\Keel\Log;
 
 use Illuminate\Support\Facades\Config;
 
@@ -121,7 +121,7 @@ final class Redactor
             return self::scrub($value);
         }
 
-        if (! is_scalar($value) || Config::string('noria.log.mask', 'redact') !== 'partial') {
+        if (! is_scalar($value) || Config::string('keel.log.mask', 'redact') !== 'partial') {
             return '[redacted]';
         }
 
@@ -141,7 +141,7 @@ final class Redactor
      */
     private static function listed(string $name, array $defaults): array
     {
-        $configured = Config::array('noria.log.'.$name, []);
+        $configured = Config::array('keel.log.'.$name, []);
         $named = array_values(array_filter($configured, is_string(...)));
 
         return $named === [] ? $defaults : array_map(self::normalise(...), $named);
@@ -153,7 +153,7 @@ final class Redactor
      */
     private static function keys(string $name, array $defaults): array
     {
-        $extra = Config::array('noria.log.'.$name, []);
+        $extra = Config::array('keel.log.'.$name, []);
 
         foreach ($extra as $key) {
             if (is_string($key)) {

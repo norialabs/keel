@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Log;
-use NoriaLabs\Platform\Contracts\LogContext;
-use NoriaLabs\Platform\Log\Logger;
-use NoriaLabs\Platform\Log\Redactor;
-use NoriaLabs\Platform\Tests\Fixtures\StubLogContext;
+use Noria\Keel\Contracts\LogContext;
+use Noria\Keel\Log\Logger;
+use Noria\Keel\Log\Redactor;
+use Noria\Keel\Tests\Fixtures\StubLogContext;
 
 describe('redacting a payload', function (): void {
     it('blanks a password rather than printing it', function (): void {
@@ -15,13 +15,13 @@ describe('redacting a payload', function (): void {
     });
 
     it('leaves enough of a token to answer a support ticket, when asked to', function (): void {
-        config(['noria.log.mask' => 'partial']);
+        config(['keel.log.mask' => 'partial']);
 
         expect(Redactor::scrub(['token' => 'abcdef123456'])['token'])->toBe('ab********56');
     });
 
     it('hides a short value completely even when masking partially', function (): void {
-        config(['noria.log.mask' => 'partial']);
+        config(['keel.log.mask' => 'partial']);
 
         expect(Redactor::scrub(['pin' => '1234'])['pin'])->toBe('****');
     });
@@ -60,7 +60,7 @@ describe('redacting a payload', function (): void {
     });
 
     it('adds what a product declares, however the product spelled it', function (): void {
-        config(['noria.log.pii_keys' => ['kraPin']]);
+        config(['keel.log.pii_keys' => ['kraPin']]);
 
         expect(Redactor::sensitive('kra_pin'))->toBeTrue();
         expect(Redactor::sensitive('krapin'))->toBeTrue();
@@ -104,7 +104,7 @@ describe('writing a log line', function (): void {
     });
 
     it('sends exceptions to the channel the product keeps for them', function (): void {
-        config(['noria.log.exception_channel' => 'errors', 'logging.channels.errors' => ['driver' => 'null']]);
+        config(['keel.log.exception_channel' => 'errors', 'logging.channels.errors' => ['driver' => 'null']]);
 
         Log::shouldReceive('channel')->once()->with('errors')->andReturnSelf();
         Log::shouldReceive('log')->once();
@@ -166,7 +166,7 @@ describe('what must not be touched', function (): void {
     });
 
     it('lets a product replace the default rather than only add to it', function (): void {
-        config(['noria.log.verbatim_keys' => ['raw_response']]);
+        config(['keel.log.verbatim_keys' => ['raw_response']]);
 
         $scrubbed = Redactor::scrub(['raw_response' => ['token' => 'keep-me'], 'payload' => ['token' => 'abcdef123456']]);
 
@@ -175,7 +175,7 @@ describe('what must not be touched', function (): void {
     });
 
     it('keeps sensitivity lists additive, because those are not holes', function (): void {
-        config(['noria.log.pii_keys' => ['kraPin']]);
+        config(['keel.log.pii_keys' => ['kraPin']]);
 
         expect(Redactor::sensitive('kra_pin'))->toBeTrue();
         expect(Redactor::sensitive('password'))->toBeTrue();

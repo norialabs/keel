@@ -6,22 +6,22 @@ use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use NoriaLabs\Platform\Db\Backup;
-use NoriaLabs\Platform\Db\BackupTier;
-use NoriaLabs\Platform\Db\ColumnShape;
-use NoriaLabs\Platform\Db\Connections;
-use NoriaLabs\Platform\Db\DumperFactory;
-use NoriaLabs\Platform\Db\Dumpers\MysqlDumper;
-use NoriaLabs\Platform\Db\Dumpers\PostgresDumper;
-use NoriaLabs\Platform\Db\Dumpers\SqliteDumper;
-use NoriaLabs\Platform\Db\Identifier;
-use NoriaLabs\Platform\Db\Restore;
-use NoriaLabs\Platform\Db\Schemas;
-use NoriaLabs\Platform\Db\Timestamps;
+use Noria\Keel\Db\Backup;
+use Noria\Keel\Db\BackupTier;
+use Noria\Keel\Db\ColumnShape;
+use Noria\Keel\Db\Connections;
+use Noria\Keel\Db\DumperFactory;
+use Noria\Keel\Db\Dumpers\MysqlDumper;
+use Noria\Keel\Db\Dumpers\PostgresDumper;
+use Noria\Keel\Db\Dumpers\SqliteDumper;
+use Noria\Keel\Db\Identifier;
+use Noria\Keel\Db\Restore;
+use Noria\Keel\Db\Schemas;
+use Noria\Keel\Db\Timestamps;
 
 function asSuperuser(Closure $work): void
 {
-    $server = Connections::open('superuser-fixture', Connections::settings('noria_pg_superuser'));
+    $server = Connections::open('superuser-fixture', Connections::settings('keel_pg_superuser'));
 
     try {
         $work($server);
@@ -54,7 +54,7 @@ function dropRestoreTarget(): void
     ]);
 
     try {
-        $admin->statement('drop database if exists "platform_test_restore" with (force)');
+        $admin->statement('drop database if exists "keel_test_restore" with (force)');
     } finally {
         $admin->disconnect();
     }
@@ -62,7 +62,7 @@ function dropRestoreTarget(): void
 
 function committed(): Connection
 {
-    return DB::connection('noria_pg_admin');
+    return DB::connection('keel_pg_admin');
 }
 
 function dumpKey(string $tier, string $stamp, string $name = 'db'): string
@@ -95,7 +95,7 @@ describe('choosing a dumper', function (): void {
 describe('tiering and retention', function (): void {
     beforeEach(function (): void {
         Storage::fake('backups');
-        config(['noria.db.disk' => 'backups']);
+        config(['keel.db.disk' => 'backups']);
     });
 
     it('keeps each tier for its own window', function (): void {
@@ -121,7 +121,7 @@ describe('tiering and retention', function (): void {
     });
 
     it('reports a failed sweep rather than losing the dump that succeeded', function (): void {
-        config(['noria.db.tiers.hourly.prefix' => 'backups/hourly', 'noria.db.attempts' => 1]);
+        config(['keel.db.tiers.hourly.prefix' => 'backups/hourly', 'keel.db.attempts' => 1]);
         Storage::shouldReceive('disk')->andThrow(new RuntimeException('the endpoint is gone'));
 
         expect(app(Backup::class)->prune('backups', BackupTier::Hourly))->toBe(0);
@@ -149,7 +149,7 @@ describe('tiering and retention', function (): void {
 
 describe('sealing a dump', function (): void {
     beforeEach(function (): void {
-        config(['noria.db.encryption_key' => 'base64:'.base64_encode(random_bytes(32))]);
+        config(['keel.db.encryption_key' => 'base64:'.base64_encode(random_bytes(32))]);
         $this->plain = app(Backup::class)->workingDirectory().'/seal-'.bin2hex(random_bytes(3)).'.sql.gz';
         $this->body = random_bytes(2_500_000);
         file_put_contents($this->plain, $this->body);
@@ -173,7 +173,7 @@ describe('sealing a dump', function (): void {
     });
 
     it('leaves a dump as it is when no key is configured', function (): void {
-        config(['noria.db.encryption_key' => null]);
+        config(['keel.db.encryption_key' => null]);
 
         expect(app(Backup::class)->seal($this->plain))->toBe($this->plain);
     });
@@ -189,14 +189,14 @@ describe('sealing a dump', function (): void {
 
     it('refuses to open a dump with a different key', function (): void {
         $sealed = app(Backup::class)->seal($this->plain);
-        config(['noria.db.encryption_key' => 'base64:'.base64_encode(random_bytes(32))]);
+        config(['keel.db.encryption_key' => 'base64:'.base64_encode(random_bytes(32))]);
 
         expect(fn () => app(Backup::class)->unseal($sealed, $this->plain.'.out'))
             ->toThrow(RuntimeException::class, 'another key');
     });
 
     it('refuses a key that is not 32 bytes', function (): void {
-        config(['noria.db.encryption_key' => 'base64:'.base64_encode('short')]);
+        config(['keel.db.encryption_key' => 'base64:'.base64_encode('short')]);
 
         app(Backup::class)->seal($this->plain);
     })->throws(RuntimeException::class, 'must be 32 bytes');
@@ -204,7 +204,7 @@ describe('sealing a dump', function (): void {
 
 describe('guarding an identifier', function (): void {
     it('accepts a plain name', function (): void {
-        expect(Identifier::of('zana_copy_1'))->toBe('zana_copy_1');
+        expect(Identifier::of('example_copy_1'))->toBe('example_copy_1');
     });
 
     it('refuses anything that would need quoting', function (string $name): void {
@@ -344,7 +344,7 @@ describe('a real dump and restore', function (): void {
             $this->markTestSkipped('A dump needs a real server.');
         }
 
-        if (env('NORIA_TEST_PG_ADMIN') === null) {
+        if (env('KEEL_TEST_PG_ADMIN') === null) {
             $this->markTestSkipped('Needs a second connection whose role bypasses row level security.');
         }
 
@@ -353,7 +353,7 @@ describe('a real dump and restore', function (): void {
         }
 
         Storage::fake('backups');
-        config(['noria.db.disk' => 'backups', 'noria.db.admin_connection' => 'noria_pg_admin']);
+        config(['keel.db.disk' => 'backups', 'keel.db.admin_connection' => 'keel_pg_admin']);
 
         committed()->statement('drop table if exists widgets');
         committed()->statement('create table widgets (id int primary key, name text)');
@@ -364,7 +364,7 @@ describe('a real dump and restore', function (): void {
     });
 
     afterEach(function (): void {
-        if (env('NORIA_TEST_PG_ADMIN') !== null) {
+        if (env('KEEL_TEST_PG_ADMIN') !== null) {
             committed()->statement('drop table if exists widgets');
             committed()->statement('drop function if exists widget_guard() cascade');
         }
@@ -376,14 +376,14 @@ describe('a real dump and restore', function (): void {
         expect($result['bytes'])->toBeGreaterThan(0);
         expect(Storage::disk('backups')->exists($result['key']))->toBeTrue();
 
-        $restored = app(Restore::class)->run($result['key'], 'backups', 'platform_test_restore', force: true);
+        $restored = app(Restore::class)->run($result['key'], 'backups', 'keel_test_restore', force: true);
 
         expect($restored['created'])->toBeTrue();
-        expect($restored['database'])->toBe('platform_test_restore');
+        expect($restored['database'])->toBe('keel_test_restore');
 
         $beside = Connections::open('assert', [
             ...Connections::asAdmin(Connections::settings()),
-            'database' => 'platform_test_restore',
+            'database' => 'keel_test_restore',
         ]);
 
         try {
@@ -398,14 +398,14 @@ describe('a real dump and restore', function (): void {
     it('clears the functions a dump will recreate, so a second restore is not a collision', function (): void {
         $result = app(Backup::class)->run('backups');
 
-        app(Restore::class)->run($result['key'], 'backups', 'platform_test_restore', force: true);
-        $again = app(Restore::class)->run($result['key'], 'backups', 'platform_test_restore', force: true);
+        app(Restore::class)->run($result['key'], 'backups', 'keel_test_restore', force: true);
+        $again = app(Restore::class)->run($result['key'], 'backups', 'keel_test_restore', force: true);
 
         expect($again['created'])->toBeFalse();
 
         $beside = Connections::open('assert', [
             ...Connections::asAdmin(Connections::settings()),
-            'database' => 'platform_test_restore',
+            'database' => 'keel_test_restore',
         ]);
 
         try {
@@ -418,18 +418,18 @@ describe('a real dump and restore', function (): void {
     });
 
     it('uploads an encrypted dump when a key is set, and restores it', function (): void {
-        config(['noria.db.encryption_key' => 'base64:'.base64_encode(random_bytes(32))]);
+        config(['keel.db.encryption_key' => 'base64:'.base64_encode(random_bytes(32))]);
 
         $result = app(Backup::class)->run('backups');
 
         expect($result['key'])->toEndWith('.sql.gz'.Backup::SEALED)
             ->and(@gzdecode((string) Storage::disk('backups')->get($result['key'])))->toBeFalse();
 
-        $restored = app(Restore::class)->run(null, 'backups', 'platform_test_restore', force: true);
+        $restored = app(Restore::class)->run(null, 'backups', 'keel_test_restore', force: true);
 
         $beside = Connections::open('assert', [
             ...Connections::asAdmin(Connections::settings()),
-            'database' => 'platform_test_restore',
+            'database' => 'keel_test_restore',
         ]);
 
         try {
@@ -443,18 +443,18 @@ describe('a real dump and restore', function (): void {
 
     it('leaves the database as it was when the dump it is loading fails partway', function (): void {
         $result = app(Backup::class)->run('backups');
-        app(Restore::class)->run($result['key'], 'backups', 'platform_test_restore', force: true);
+        app(Restore::class)->run($result['key'], 'backups', 'keel_test_restore', force: true);
 
         $broken = 'backups/hourly/20990101-000000-aaaaaa-broken.sql.gz';
         Storage::disk('backups')->put($broken, (string) gzencode("create table half_loaded (id int);\nselect no_such_function();\n"));
 
         $beside = Connections::open('assert', [
             ...Connections::asAdmin(Connections::settings()),
-            'database' => 'platform_test_restore',
+            'database' => 'keel_test_restore',
         ]);
 
         try {
-            expect(fn () => app(Restore::class)->run($broken, 'backups', 'platform_test_restore', force: true))
+            expect(fn () => app(Restore::class)->run($broken, 'backups', 'keel_test_restore', force: true))
                 ->toThrow(RuntimeException::class, 'psql failed');
 
             expect($beside->table('widgets')->count())->toBe(2)
@@ -466,7 +466,7 @@ describe('a real dump and restore', function (): void {
     });
 
     it('promotes the first dump after the daily boundary', function (): void {
-        config(['noria.db.tiers.daily.hour' => 0]);
+        config(['keel.db.tiers.daily.hour' => 0]);
 
         $result = app(Backup::class)->run('backups');
 
@@ -475,7 +475,7 @@ describe('a real dump and restore', function (): void {
     });
 
     it('keeps the rest of the day hourly once a daily one exists', function (): void {
-        config(['noria.db.tiers.daily.hour' => 0]);
+        config(['keel.db.tiers.daily.hour' => 0]);
 
         app(Backup::class)->run('backups');
         $second = app(Backup::class)->run('backups');
@@ -490,11 +490,11 @@ describe('a dump that names an extension', function (): void {
             $this->markTestSkipped('A dump needs a real server.');
         }
 
-        if (env('NORIA_TEST_PG_ADMIN') === null) {
+        if (env('KEEL_TEST_PG_ADMIN') === null) {
             $this->markTestSkipped('Needs a second connection whose role bypasses row level security.');
         }
 
-        if (env('NORIA_TEST_PG_SUPERUSER') === null) {
+        if (env('KEEL_TEST_PG_SUPERUSER') === null) {
             $this->markTestSkipped('Needs a superuser connection to install an untrusted extension.');
         }
 
@@ -510,9 +510,9 @@ describe('a dump that names an extension', function (): void {
 
         Storage::fake('backups');
         config([
-            'noria.db.disk' => 'backups',
-            'noria.db.admin_connection' => 'noria_pg_admin',
-            'noria.db.superuser_connection' => 'noria_pg_superuser',
+            'keel.db.disk' => 'backups',
+            'keel.db.admin_connection' => 'keel_pg_admin',
+            'keel.db.superuser_connection' => 'keel_pg_superuser',
         ]);
 
         $extension = $this->extension;
@@ -524,7 +524,7 @@ describe('a dump that names an extension', function (): void {
     });
 
     afterEach(function (): void {
-        if (env('NORIA_TEST_PG_ADMIN') === null || env('NORIA_TEST_PG_SUPERUSER') === null) {
+        if (env('KEEL_TEST_PG_ADMIN') === null || env('KEEL_TEST_PG_SUPERUSER') === null) {
             return;
         }
 
@@ -541,13 +541,13 @@ describe('a dump that names an extension', function (): void {
     it('installs what the dump needs before reading it, and says what it installed', function (): void {
         $result = app(Backup::class)->run('backups');
 
-        $restored = app(Restore::class)->run($result['key'], 'backups', 'platform_test_restore', force: true);
+        $restored = app(Restore::class)->run($result['key'], 'backups', 'keel_test_restore', force: true);
 
         expect($restored['extensions'])->toBe([$this->extension]);
 
         $beside = Connections::open('assert', [
             ...Connections::asAdmin(Connections::settings()),
-            'database' => 'platform_test_restore',
+            'database' => 'keel_test_restore',
         ]);
 
         try {
@@ -561,24 +561,24 @@ describe('a dump that names an extension', function (): void {
     it('leaves the extension alone on a second restore into the same database', function (): void {
         $result = app(Backup::class)->run('backups');
 
-        app(Restore::class)->run($result['key'], 'backups', 'platform_test_restore', force: true);
-        $again = app(Restore::class)->run($result['key'], 'backups', 'platform_test_restore', force: true);
+        app(Restore::class)->run($result['key'], 'backups', 'keel_test_restore', force: true);
+        $again = app(Restore::class)->run($result['key'], 'backups', 'keel_test_restore', force: true);
 
         expect($again['extensions'])->toBe([])
             ->and($again['created'])->toBeFalse();
     });
 
     it('refuses rather than loading a dump it cannot equip the target for', function (): void {
-        config(['noria.db.superuser_connection' => null]);
+        config(['keel.db.superuser_connection' => null]);
 
         $result = app(Backup::class)->run('backups');
 
-        expect(fn () => app(Restore::class)->run($result['key'], 'backups', 'platform_test_restore', force: true))
+        expect(fn () => app(Restore::class)->run($result['key'], 'backups', 'keel_test_restore', force: true))
             ->toThrow(RuntimeException::class, 'create extension if not exists "'.$this->extension.'";');
 
         $beside = Connections::open('assert', [
             ...Connections::asAdmin(Connections::settings()),
-            'database' => 'platform_test_restore',
+            'database' => 'keel_test_restore',
         ]);
 
         try {
@@ -596,7 +596,7 @@ describe('the preflight', function (): void {
         }
 
         Storage::fake('backups');
-        config(['noria.db.disk' => 'backups', 'noria.db.admin_connection' => null]);
+        config(['keel.db.disk' => 'backups', 'keel.db.admin_connection' => null]);
     });
 
     it('refuses to dump as a role that would produce an empty file', function (): void {
@@ -639,7 +639,7 @@ describe('timezone aware timestamps', function (): void {
     });
 
     it('has nothing to check when the product asked for plain timestamps', function (): void {
-        config(['noria.timestamps' => 'plain']);
+        config(['keel.timestamps' => 'plain']);
         DB::statement("set time zone 'Africa/Nairobi'");
 
         try {

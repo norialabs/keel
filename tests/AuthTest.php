@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
-use NoriaLabs\Platform\Auth\Otp;
-use NoriaLabs\Platform\Auth\OtpChallenge;
-use NoriaLabs\Platform\Auth\OtpOutcome;
-use NoriaLabs\Platform\Auth\OtpThrottled;
-use NoriaLabs\Platform\Auth\PersonalAccessToken;
-use NoriaLabs\Platform\Auth\ProviderProfile;
-use NoriaLabs\Platform\Auth\SocialState;
-use NoriaLabs\Platform\Auth\UnscopedToken;
-use NoriaLabs\Platform\Identity\Destination;
-use NoriaLabs\Platform\Platform;
-use NoriaLabs\Platform\Tests\Fixtures\HostOtpChallenge;
+use Noria\Keel\Auth\Otp;
+use Noria\Keel\Auth\OtpChallenge;
+use Noria\Keel\Auth\OtpOutcome;
+use Noria\Keel\Auth\OtpThrottled;
+use Noria\Keel\Auth\PersonalAccessToken;
+use Noria\Keel\Auth\ProviderProfile;
+use Noria\Keel\Auth\SocialState;
+use Noria\Keel\Auth\UnscopedToken;
+use Noria\Keel\Identity\Destination;
+use Noria\Keel\Keel;
+use Noria\Keel\Tests\Fixtures\HostOtpChallenge;
 
 function to(string $raw): Destination
 {
@@ -22,7 +22,7 @@ function to(string $raw): Destination
 }
 
 it('issues a code of the configured length', function (): void {
-    config(['noria.auth.otp.length' => 8]);
+    config(['keel.auth.otp.length' => 8]);
 
     expect(app(Otp::class)->issue(to('ada@example.com')))->toHaveLength(8);
 });
@@ -82,7 +82,7 @@ it('refuses a code that has expired', function (): void {
 });
 
 it('stops accepting guesses after the configured number of them', function (): void {
-    config(['noria.auth.otp.attempts' => 3]);
+    config(['keel.auth.otp.attempts' => 3]);
 
     $otp = app(Otp::class);
     $code = $otp->issue(to('ada@example.com'));
@@ -103,7 +103,7 @@ it('counts a guess before checking it, so a crash costs an attempt rather than g
 });
 
 it('refuses the last guess a concurrent request already spent', function (): void {
-    config(['noria.auth.otp.attempts' => 3]);
+    config(['keel.auth.otp.attempts' => 3]);
 
     $otp = app(Otp::class);
     $code = $otp->issue(to('ada@example.com'));
@@ -137,7 +137,7 @@ it('cannot be used twice', function (): void {
 });
 
 it('cancels the outstanding code when a new one is asked for', function (): void {
-    config(['noria.auth.otp.throttle' => 0]);
+    config(['keel.auth.otp.throttle' => 0]);
 
     $otp = app(Otp::class);
     $first = $otp->issue(to('ada@example.com'));
@@ -175,7 +175,7 @@ describe('asking too often', function (): void {
     })->throws(OtpThrottled::class);
 
     it('says how long the caller has to wait', function (): void {
-        config(['noria.auth.otp.throttle' => 90]);
+        config(['keel.auth.otp.throttle' => 90]);
 
         $otp = app(Otp::class);
         $otp->issue(to('ada@example.com'));
@@ -202,7 +202,7 @@ describe('asking too often', function (): void {
     });
 
     it('does not hold anybody up when the product turned the limit off', function (): void {
-        config(['noria.auth.otp.throttle' => 0]);
+        config(['keel.auth.otp.throttle' => 0]);
 
         $otp = app(Otp::class);
         $otp->issue(to('ada@example.com'));
@@ -239,7 +239,7 @@ describe('a round trip through a provider', function (): void {
     });
 
     it('forgets a state the caller took too long to come back with', function (): void {
-        config(['noria.auth.social.state_ttl' => 1]);
+        config(['keel.auth.social.state_ttl' => 1]);
 
         $state = app(SocialState::class);
         $issued = $state->issue('google');
@@ -272,7 +272,7 @@ describe('a round trip through a provider', function (): void {
 
 describe('substituting the model', function (): void {
     it('issues and verifies through the model the host substituted', function (): void {
-        Platform::useOtpChallengeModel(HostOtpChallenge::class);
+        Keel::useOtpChallengeModel(HostOtpChallenge::class);
 
         $otp = app(Otp::class);
         $code = $otp->issue(to('ada@example.com'));
@@ -282,7 +282,7 @@ describe('substituting the model', function (): void {
     });
 
     it('refuses a substitute that is not a sign-in code', function (): void {
-        Platform::useOtpChallengeModel(stdClass::class);
+        Keel::useOtpChallengeModel(stdClass::class);
     })->throws(InvalidArgumentException::class);
 });
 

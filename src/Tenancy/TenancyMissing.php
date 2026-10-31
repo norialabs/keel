@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tenancy;
+namespace Noria\Keel\Tenancy;
 
 use RuntimeException;
 

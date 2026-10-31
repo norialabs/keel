@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tenancy;
+namespace Noria\Keel\Tenancy;
 
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use NoriaLabs\Platform\Platform;
+use Noria\Keel\Keel;
 
 class Invariants
 {
@@ -45,7 +45,7 @@ class Invariants
                   where p.schemaname = n.nspname and p.tablename = c.relname and p.policyname like '%tenant_isolation'
               )
             order by 1
-        SQL, [Config::string('noria.tenancy.column', 'workspace_id')]);
+        SQL, [Config::string('keel.tenancy.column', 'workspace_id')]);
 
         return array_values(array_diff(self::names($rows), self::unscoped()));
     }
@@ -96,18 +96,18 @@ class Invariants
      */
     private static function unscoped(): array
     {
-        $tables = Config::array('noria.tenancy.unscoped_tables', []);
+        $tables = Config::array('keel.tenancy.unscoped_tables', []);
 
         return [
             ...array_values(array_filter($tables, is_string(...))),
-            Platform::table('audit_logs'),
-            Platform::table('otp_challenges'),
-            Platform::table('invitations'),
+            Keel::table('audit_logs'),
+            Keel::table('otp_challenges'),
+            Keel::table('invitations'),
         ];
     }
 
     private static function connection(): Connection
     {
-        return DB::connection(Platform::connection());
+        return DB::connection(Keel::connection());
     }
 }

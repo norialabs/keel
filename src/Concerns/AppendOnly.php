@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Concerns;
+namespace Noria\Keel\Concerns;
 
 use RuntimeException;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Csv;
+namespace Noria\Keel\Csv;
 
 use Generator;
 use Illuminate\Support\Facades\Config;
@@ -87,7 +87,7 @@ final class Reader
 
     public static function maxBytes(): int
     {
-        return Config::integer('noria.csv.max_bytes', self::MAX_BYTES);
+        return Config::integer('keel.csv.max_bytes', self::MAX_BYTES);
     }
 
     public static function preview(string $path): self

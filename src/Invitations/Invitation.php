@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Invitations;
+namespace Noria\Keel\Invitations;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use NoriaLabs\Platform\Concerns\BelongsToWorkspace;
-use NoriaLabs\Platform\Platform;
+use Noria\Keel\Concerns\BelongsToWorkspace;
+use Noria\Keel\Keel;
 
 /**
  * @property string $id
@@ -33,12 +33,12 @@ class Invitation extends Model
 
     public function getTable(): string
     {
-        return Platform::table('invitations');
+        return Keel::table('invitations');
     }
 
     public function getConnectionName(): ?string
     {
-        return Platform::connection() ?? parent::getConnectionName();
+        return Keel::connection() ?? parent::getConnectionName();
     }
 
     /** @return array<string, string> */

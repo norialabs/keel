@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
-use NoriaLabs\Platform\Contracts\Courier;
-use NoriaLabs\Platform\Identity\Channel;
-use NoriaLabs\Platform\Identity\Destination;
-use NoriaLabs\Platform\Invitations\Invitation;
-use NoriaLabs\Platform\Invitations\InvitationOutcome;
-use NoriaLabs\Platform\Invitations\Invitations;
-use NoriaLabs\Platform\Platform;
-use NoriaLabs\Platform\Tests\Fixtures\HostInvitation;
-use NoriaLabs\Platform\Tests\Fixtures\StubCourier;
+use Noria\Keel\Contracts\Courier;
+use Noria\Keel\Identity\Channel;
+use Noria\Keel\Identity\Destination;
+use Noria\Keel\Invitations\Invitation;
+use Noria\Keel\Invitations\InvitationOutcome;
+use Noria\Keel\Invitations\Invitations;
+use Noria\Keel\Keel;
+use Noria\Keel\Tests\Fixtures\HostInvitation;
+use Noria\Keel\Tests\Fixtures\StubCourier;
 
 function ada(): Destination
 {
@@ -61,7 +61,7 @@ describe('inviting somebody', function (): void {
     });
 
     it('shows the address back when the product asked to see it', function (): void {
-        config(['noria.invitations.hint' => 'plain']);
+        config(['keel.invitations.hint' => 'plain']);
 
         app(Invitations::class)->invite(ada(), 'member');
 
@@ -165,7 +165,7 @@ describe('accepting one', function (): void {
     })->throws(InvitationOutcome::class, 'expired');
 
     it('takes its deadline from config', function (): void {
-        config(['noria.invitations.ttl_days' => 1]);
+        config(['keel.invitations.ttl_days' => 1]);
 
         app(Invitations::class)->invite(ada(), 'member');
 
@@ -205,7 +205,7 @@ describe('housekeeping', function (): void {
     });
 
     it('reads through the model the host substituted', function (): void {
-        Platform::useInvitationModel(HostInvitation::class);
+        Keel::useInvitationModel(HostInvitation::class);
 
         app(Invitations::class)->invite(ada(), 'member');
 

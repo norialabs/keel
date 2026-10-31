@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Db;
+namespace Noria\Keel\Db;
 
 use Illuminate\Contracts\Container\Container;
-use NoriaLabs\Platform\Contracts\DatabaseDumper;
-use NoriaLabs\Platform\Db\Dumpers\MysqlDumper;
-use NoriaLabs\Platform\Db\Dumpers\PostgresDumper;
-use NoriaLabs\Platform\Db\Dumpers\SqliteDumper;
+use Noria\Keel\Contracts\DatabaseDumper;
+use Noria\Keel\Db\Dumpers\MysqlDumper;
+use Noria\Keel\Db\Dumpers\PostgresDumper;
+use Noria\Keel\Db\Dumpers\SqliteDumper;
 use RuntimeException;
 
 class DumperFactory

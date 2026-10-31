@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Auth;
+namespace Noria\Keel\Auth;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
-use NoriaLabs\Platform\Identity\Channel;
-use NoriaLabs\Platform\Identity\Destination;
-use NoriaLabs\Platform\Identity\KeyedHash;
-use NoriaLabs\Platform\Platform;
+use Noria\Keel\Identity\Channel;
+use Noria\Keel\Identity\Destination;
+use Noria\Keel\Identity\KeyedHash;
+use Noria\Keel\Keel;
 
 class Otp
 {
@@ -34,13 +34,13 @@ class Otp
 
         $this->pending($to)->delete();
 
-        Platform::otpChallengeModel()::query()->create([
+        Keel::otpChallengeModel()::query()->create([
             'destination_hash' => $this->hash->of($to->value),
-            'destination_hint' => $to->hint(Config::string('noria.auth.otp.hint', 'masked')),
+            'destination_hint' => $to->hint(Config::string('keel.auth.otp.hint', 'masked')),
             'channel' => $channel->value,
             'code_hash' => Hash::make($code),
             'attempts' => 0,
-            'expires_at' => Carbon::now()->addMinutes(Config::integer('noria.auth.otp.ttl', 10)),
+            'expires_at' => Carbon::now()->addMinutes(Config::integer('keel.auth.otp.ttl', 10)),
         ]);
 
         return $code;
@@ -58,9 +58,9 @@ class Otp
             return OtpOutcome::Expired;
         }
 
-        $maxAttempts = Config::integer('noria.auth.otp.attempts', 5);
+        $maxAttempts = Config::integer('keel.auth.otp.attempts', 5);
 
-        $claimed = Platform::otpChallengeModel()::query()
+        $claimed = Keel::otpChallengeModel()::query()
             ->whereKey($challenge->getKey())
             ->whereNull('consumed_at')
             ->where('attempts', '<', $maxAttempts)
@@ -74,7 +74,7 @@ class Otp
             return OtpOutcome::Incorrect;
         }
 
-        $consumed = Platform::otpChallengeModel()::query()
+        $consumed = Keel::otpChallengeModel()::query()
             ->whereKey($challenge->getKey())
             ->whereNull('consumed_at')
             ->update(['consumed_at' => Carbon::now()]);
@@ -84,13 +84,13 @@ class Otp
 
     public function secondsUntilNextIssue(Destination $to): ?int
     {
-        $throttle = Config::integer('noria.auth.otp.throttle', 60);
+        $throttle = Config::integer('keel.auth.otp.throttle', 60);
 
         if ($throttle <= 0) {
             return null;
         }
 
-        $last = Platform::otpChallengeModel()::query()
+        $last = Keel::otpChallengeModel()::query()
             ->where('destination_hash', $this->hash->of($to->value))
             ->latest('created_at')
             ->first();
@@ -108,7 +108,7 @@ class Otp
 
     public function prune(int $days = 7): int
     {
-        $deleted = Platform::otpChallengeModel()::query()
+        $deleted = Keel::otpChallengeModel()::query()
             ->where('expires_at', '<', Carbon::now()->subDays($days))
             ->delete();
 
@@ -118,14 +118,14 @@ class Otp
     /** @return Builder<OtpChallenge> */
     private function pending(Destination $to)
     {
-        return Platform::otpChallengeModel()::query()
+        return Keel::otpChallengeModel()::query()
             ->where('destination_hash', $this->hash->of($to->value))
             ->whereNull('consumed_at');
     }
 
     private function code(): string
     {
-        $length = max(4, Config::integer('noria.auth.otp.length', 6));
+        $length = max(4, Config::integer('keel.auth.otp.length', 6));
 
         $code = (string) random_int(1, 9);
 

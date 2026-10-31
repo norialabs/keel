@@ -7,14 +7,14 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\ColumnDefinition;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
-use NoriaLabs\Platform\Db\Timestamps;
-use NoriaLabs\Platform\Platform;
+use Noria\Keel\Db\Timestamps;
+use Noria\Keel\Keel;
 
 return new class extends Migration
 {
     public function getConnection(): ?string
     {
-        return Platform::connection();
+        return Keel::connection();
     }
 
     private function tz(): bool
@@ -36,9 +36,9 @@ return new class extends Migration
     {
         Timestamps::assertAligned();
 
-        $tenantColumn = Config::string('noria.tenancy.column', 'workspace_id');
+        $tenantColumn = Config::string('keel.tenancy.column', 'workspace_id');
 
-        Schema::create(Platform::table('audit_logs'), function (Blueprint $table) use ($tenantColumn): void {
+        Schema::create(Keel::table('audit_logs'), function (Blueprint $table) use ($tenantColumn): void {
             $table->uuid('id')->primary();
             $table->uuid($tenantColumn)->nullable()->index();
 
@@ -58,7 +58,7 @@ return new class extends Migration
             $table->index([$tenantColumn, 'created_at']);
         });
 
-        Schema::create(Platform::table('otp_challenges'), function (Blueprint $table): void {
+        Schema::create(Keel::table('otp_challenges'), function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('destination_hash', 64)->index();
             $table->string('destination_hint', 128)->nullable();
@@ -70,7 +70,7 @@ return new class extends Migration
             $this->stamps($table);
         });
 
-        Schema::create(Platform::table('invitations'), function (Blueprint $table) use ($tenantColumn): void {
+        Schema::create(Keel::table('invitations'), function (Blueprint $table) use ($tenantColumn): void {
             $table->uuid('id')->primary();
             $table->uuid($tenantColumn)->nullable()->index();
             $table->string('destination_hash', 64)->index();
@@ -89,8 +89,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists(Platform::table('invitations'));
-        Schema::dropIfExists(Platform::table('otp_challenges'));
-        Schema::dropIfExists(Platform::table('audit_logs'));
+        Schema::dropIfExists(Keel::table('invitations'));
+        Schema::dropIfExists(Keel::table('otp_challenges'));
+        Schema::dropIfExists(Keel::table('audit_logs'));
     }
 };

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Console;
+namespace Noria\Keel\Console;
 
 use Illuminate\Console\Command;
-use NoriaLabs\Platform\Db\Backup;
-use NoriaLabs\Platform\Db\BackupTier;
+use Noria\Keel\Db\Backup;
+use Noria\Keel\Db\BackupTier;
 
 class BackupCommand extends Command
 {
-    protected $signature = 'noria:backup
+    protected $signature = 'keel:backup
         {--disk= : The filesystem disk to upload to}
         {--tier= : Force hourly or daily rather than letting the clock decide}
         {--connection= : The database connection to dump}';

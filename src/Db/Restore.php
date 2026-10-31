@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Db;
+namespace Noria\Keel\Db;
 
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
-use NoriaLabs\Platform\Contracts\DatabaseMaintainer;
-use NoriaLabs\Platform\Contracts\DatabaseReplacer;
+use Noria\Keel\Contracts\DatabaseMaintainer;
+use Noria\Keel\Contracts\DatabaseReplacer;
 use RuntimeException;
 
 class Restore
@@ -29,7 +29,7 @@ class Restore
             throw new RuntimeException('Refusing to restore over production without an explicit force.');
         }
 
-        $disk ??= Config::string('noria.db.disk', 'local');
+        $disk ??= Config::string('keel.db.disk', 'local');
 
         $settings = Connections::settings($connection);
         $appRole = Connections::value($settings, 'username');

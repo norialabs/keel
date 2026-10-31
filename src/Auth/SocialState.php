@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Auth;
+namespace Noria\Keel\Auth;
 
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Facades\Config;
 
 class SocialState
 {
-    private const PREFIX = 'noria:social:state:';
+    private const PREFIX = 'keel:social:state:';
 
     public function __construct(private Repository $cache) {}
 
@@ -20,7 +20,7 @@ class SocialState
         $this->cache->put(self::key($state), [
             'provider' => $provider,
             'actor_id' => $actorId,
-        ], now()->addMinutes(Config::integer('noria.auth.social.state_ttl', 10)));
+        ], now()->addMinutes(Config::integer('keel.auth.social.state_ttl', 10)));
 
         return $state;
     }

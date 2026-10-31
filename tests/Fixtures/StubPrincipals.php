@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
 use Illuminate\Contracts\Auth\Authenticatable;
-use NoriaLabs\Platform\Contracts\Principal;
-use NoriaLabs\Platform\Contracts\PrincipalResolver;
+use Noria\Keel\Contracts\Principal;
+use Noria\Keel\Contracts\PrincipalResolver;
 
 class StubPrincipals implements PrincipalResolver
 {

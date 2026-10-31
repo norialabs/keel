@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Db;
+namespace Noria\Keel\Db;
 
 final readonly class ColumnShape
 {

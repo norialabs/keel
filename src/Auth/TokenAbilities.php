@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Auth;
+namespace Noria\Keel\Auth;
 
-use NoriaLabs\Platform\Contracts\PermissionAction;
-use NoriaLabs\Platform\Contracts\PermissionResource;
-use NoriaLabs\Platform\Rbac\Catalog;
+use Noria\Keel\Contracts\PermissionAction;
+use Noria\Keel\Contracts\PermissionResource;
+use Noria\Keel\Rbac\Catalog;
 
 final class TokenAbilities
 {

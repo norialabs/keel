@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Contracts;
+namespace Noria\Keel\Contracts;
 
-use NoriaLabs\Platform\Identity\Channel;
-use NoriaLabs\Platform\Identity\Destination;
+use Noria\Keel\Identity\Channel;
+use Noria\Keel\Identity\Destination;
 
 interface Courier
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Identity;
+namespace Noria\Keel\Identity;
 
 use Illuminate\Support\Facades\Config;
 use RuntimeException;
@@ -27,7 +27,7 @@ final class KeyedHash
             return $this->key;
         }
 
-        $configured = Config::get('noria.identity.hash_key');
+        $configured = Config::get('keel.identity.hash_key');
 
         if (is_string($configured) && $configured !== '') {
             return $configured;
@@ -40,7 +40,7 @@ final class KeyedHash
         }
 
         throw new RuntimeException(
-            'A keyed hash needs a key: set noria.identity.hash_key, or the application key.'
+            'A keyed hash needs a key: set keel.identity.hash_key, or the application key.'
         );
     }
 }

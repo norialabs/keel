@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Db;
+namespace Noria\Keel\Db;
 
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;

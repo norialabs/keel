@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Db\Dumpers;
+namespace Noria\Keel\Db\Dumpers;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
-use NoriaLabs\Platform\Contracts\DatabaseDumper;
+use Noria\Keel\Contracts\DatabaseDumper;
 use Symfony\Component\Process\Process;
 
 class MysqlDumper implements DatabaseDumper
@@ -71,12 +71,12 @@ class MysqlDumper implements DatabaseDumper
         $password = $this->value($connection, 'password', '');
         $env = $password === '' ? [] : ['MYSQL_PWD' => $password];
 
-        (new Process($command, env: $env, timeout: Config::integer('noria.db.timeout', 900)))->mustRun();
+        (new Process($command, env: $env, timeout: Config::integer('keel.db.timeout', 900)))->mustRun();
     }
 
     private function gzip(): bool
     {
-        return Config::boolean('noria.db.gzip', true);
+        return Config::boolean('keel.db.gzip', true);
     }
 
     private function withoutGzipSuffix(string $path): string

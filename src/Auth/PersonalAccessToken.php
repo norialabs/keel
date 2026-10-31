@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Auth;
+namespace Noria\Keel\Auth;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Laravel\Sanctum\PersonalAccessToken as SanctumPersonalAccessToken;
-use NoriaLabs\Platform\Concerns\BelongsToWorkspace;
+use Noria\Keel\Concerns\BelongsToWorkspace;
 
 /**
  * @property string $id

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Audit;
+namespace Noria\Keel\Audit;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;

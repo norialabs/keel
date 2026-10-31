@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
 use BackedEnum;
-use NoriaLabs\Platform\Contracts\Principal;
+use Noria\Keel\Contracts\Principal;
 
 class StubPrincipal implements Principal
 {

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Auth;
+namespace Noria\Keel\Auth;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use NoriaLabs\Platform\Platform;
+use Noria\Keel\Keel;
 
 /**
  * @property string $id
@@ -28,12 +28,12 @@ class OtpChallenge extends Model
 
     public function getTable(): string
     {
-        return Platform::table('otp_challenges');
+        return Keel::table('otp_challenges');
     }
 
     public function getConnectionName(): ?string
     {
-        return Platform::connection() ?? parent::getConnectionName();
+        return Keel::connection() ?? parent::getConnectionName();
     }
 
     /** @return array<string, string> */

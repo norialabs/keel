@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Rbac;
+namespace Noria\Keel\Rbac;
 
 use Illuminate\Contracts\Auth\Authenticatable;
-use NoriaLabs\Platform\Contracts\PermissionAction;
-use NoriaLabs\Platform\Contracts\PermissionCeiling;
-use NoriaLabs\Platform\Contracts\PermissionResource;
-use NoriaLabs\Platform\Contracts\PrincipalResolver;
-use NoriaLabs\Platform\Contracts\RoleRepository;
+use Noria\Keel\Contracts\PermissionAction;
+use Noria\Keel\Contracts\PermissionCeiling;
+use Noria\Keel\Contracts\PermissionResource;
+use Noria\Keel\Contracts\PrincipalResolver;
+use Noria\Keel\Contracts\RoleRepository;
 
 class PermissionResolver
 {

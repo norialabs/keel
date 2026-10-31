@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Console;
+namespace Noria\Keel\Console;
 
 use Illuminate\Console\Command;
-use NoriaLabs\Platform\Auth\Otp;
+use Noria\Keel\Auth\Otp;
 
 class PruneOtpCommand extends Command
 {
-    protected $signature = 'noria:prune-otp {--days=7 : How long an expired code is kept}';
+    protected $signature = 'keel:prune-otp {--days=7 : How long an expired code is kept}';
 
     protected $description = 'Remove sign-in codes nobody will use again';
 

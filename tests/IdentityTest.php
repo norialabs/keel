@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use NoriaLabs\Platform\Identity\Channel;
-use NoriaLabs\Platform\Identity\Destination;
-use NoriaLabs\Platform\Identity\KeyedHash;
-use NoriaLabs\Platform\Identity\Phone;
+use Noria\Keel\Identity\Channel;
+use Noria\Keel\Identity\Destination;
+use Noria\Keel\Identity\KeyedHash;
+use Noria\Keel\Identity\Phone;
 
 describe('a phone number', function (): void {
     it('normalises every spelling of one number to the same string', function (string $raw): void {
@@ -30,7 +30,7 @@ describe('a phone number', function (): void {
     });
 
     it('takes a new market from config rather than a release', function (): void {
-        config(['noria.identity.dialling_codes.ZM' => '260']);
+        config(['keel.identity.dialling_codes.ZM' => '260']);
 
         expect(Phone::normalise('0977123456', 'ZM'))->toBe('+260977123456');
     });
@@ -94,13 +94,13 @@ describe('a keyed hash', function (): void {
     });
 
     it('takes the application key when the product named none', function (): void {
-        config(['noria.identity.hash_key' => null, 'app.key' => 'base64:'.base64_encode(str_repeat('k', 32))]);
+        config(['keel.identity.hash_key' => null, 'app.key' => 'base64:'.base64_encode(str_repeat('k', 32))]);
 
         expect((new KeyedHash)->of('ada@example.com'))->toBeString();
     });
 
     it('refuses to hash with no key at all rather than with an empty one', function (): void {
-        config(['noria.identity.hash_key' => null, 'app.key' => null]);
+        config(['keel.identity.hash_key' => null, 'app.key' => null]);
 
         (new KeyedHash)->of('ada@example.com');
     })->throws(RuntimeException::class, 'needs a key');

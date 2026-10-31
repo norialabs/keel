@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
-use NoriaLabs\Platform\Contracts\LogContext;
+use Noria\Keel\Contracts\LogContext;
 
 class StubLogContext implements LogContext
 {

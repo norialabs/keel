@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Log;
+namespace Noria\Keel\Log;
 
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
-use NoriaLabs\Platform\Contracts\LogContext;
+use Noria\Keel\Contracts\LogContext;
 use Throwable;
 
 final class Logger
@@ -38,7 +38,7 @@ final class Logger
     public static function exception(string $message, Throwable $e, array $context = [], string $level = 'error'): void
     {
         self::write(
-            Config::string('noria.log.exception_channel', 'app'),
+            Config::string('keel.log.exception_channel', 'app'),
             $message,
             [...$context, 'exception' => $e],
             $level,

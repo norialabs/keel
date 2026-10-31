@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Rbac;
+namespace Noria\Keel\Rbac;
 
 use BackedEnum;
 use Illuminate\Contracts\Support\Arrayable;
 use InvalidArgumentException;
 use JsonSerializable;
-use NoriaLabs\Platform\Contracts\PermissionAction;
-use NoriaLabs\Platform\Contracts\PermissionResource;
+use Noria\Keel\Contracts\PermissionAction;
+use Noria\Keel\Contracts\PermissionResource;
 
 /**
  * @implements Arrayable<string, list<string>>

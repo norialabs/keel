@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Http\Middleware;
+namespace Noria\Keel\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use NoriaLabs\Platform\Contracts\WorkspaceResolver;
-use NoriaLabs\Platform\Tenancy\Tenancy;
+use Noria\Keel\Contracts\WorkspaceResolver;
+use Noria\Keel\Tenancy\Tenancy;
 use Symfony\Component\HttpFoundation\Response;
 
 class SetWorkspaceContext

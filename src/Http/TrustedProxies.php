@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Http;
+namespace Noria\Keel\Http;
 
 final class TrustedProxies
 {

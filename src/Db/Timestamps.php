@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Db;
+namespace Noria\Keel\Db;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use NoriaLabs\Platform\Platform;
+use Noria\Keel\Keel;
 use RuntimeException;
 use Throwable;
 
@@ -16,7 +16,7 @@ final class Timestamps
 
     public static function aware(): bool
     {
-        return Config::string('noria.timestamps', 'tz') === 'tz';
+        return Config::string('keel.timestamps', 'tz') === 'tz';
     }
 
     public static function assertAligned(?string $connection = null): void
@@ -25,7 +25,7 @@ final class Timestamps
             return;
         }
 
-        $db = DB::connection($connection ?? Platform::connection());
+        $db = DB::connection($connection ?? Keel::connection());
 
         if ($db->getDriverName() !== 'pgsql') {
             return;
@@ -52,7 +52,7 @@ final class Timestamps
         throw new RuntimeException(
             "This connection's timezone is [{$session}] and the application runs on [{$application}], "
             ."so every timestamp written would be stored at the wrong moment. Set 'timezone' on the "
-            ."connection in config/database.php, or set noria.timestamps to 'plain'."
+            ."connection in config/database.php, or set keel.timestamps to 'plain'."
         );
     }
 

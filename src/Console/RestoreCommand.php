@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Console;
+namespace Noria\Keel\Console;
 
 use Illuminate\Console\Command;
-use NoriaLabs\Platform\Db\Backup;
-use NoriaLabs\Platform\Db\Restore;
+use Noria\Keel\Db\Backup;
+use Noria\Keel\Db\Restore;
 use RuntimeException;
 
 class RestoreCommand extends Command
 {
-    protected $signature = 'noria:restore
+    protected $signature = 'keel:restore
         {key? : The backup to read, newest across both tiers when omitted}
         {--disk= : The filesystem disk to read from}
         {--database= : Restore into this database instead, creating it if needed}

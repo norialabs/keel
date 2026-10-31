@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Db;
+namespace Noria\Keel\Db;
 
 use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
@@ -313,10 +313,10 @@ class Rebuild
         $default = Config::string('database.default');
 
         try {
-            Config::set('database.connections.noria-rebuild-probe', [...$maintenance, 'database' => $probe]);
-            DB::purge('noria-rebuild-probe');
+            Config::set('database.connections.keel-rebuild-probe', [...$maintenance, 'database' => $probe]);
+            DB::purge('keel-rebuild-probe');
 
-            if (Artisan::call('migrate', ['--database' => 'noria-rebuild-probe', '--force' => true]) !== 0) {
+            if (Artisan::call('migrate', ['--database' => 'keel-rebuild-probe', '--force' => true]) !== 0) {
                 throw new RuntimeException(
                     'The current migrations do not run against an empty database: '.trim(Artisan::output())
                 );
@@ -333,7 +333,7 @@ class Rebuild
         } finally {
             DB::setDefaultConnection($default);
             $this->release($probe);
-            DB::purge('noria-rebuild-probe');
+            DB::purge('keel-rebuild-probe');
             $this->dropDatabase($admin, $probe);
         }
     }
@@ -589,15 +589,15 @@ class Rebuild
     {
         DB::purge();
 
-        Config::set('database.connections.noria-rebuild-fresh', $maintenance);
-        DB::purge('noria-rebuild-fresh');
+        Config::set('database.connections.keel-rebuild-fresh', $maintenance);
+        DB::purge('keel-rebuild-fresh');
 
         try {
-            if (Artisan::call('migrate:fresh', ['--database' => 'noria-rebuild-fresh', '--force' => true]) !== 0) {
+            if (Artisan::call('migrate:fresh', ['--database' => 'keel-rebuild-fresh', '--force' => true]) !== 0) {
                 throw new RuntimeException('migrate:fresh failed: '.trim(Artisan::output()));
             }
         } finally {
-            DB::purge('noria-rebuild-fresh');
+            DB::purge('keel-rebuild-fresh');
         }
     }
 
@@ -664,7 +664,7 @@ class Rebuild
      */
     private function verify(callable $report): void
     {
-        $commands = Config::array('noria.db.rebuild.verify_commands', []);
+        $commands = Config::array('keel.db.rebuild.verify_commands', []);
 
         foreach ($commands as $command) {
             if (! is_string($command)) {
@@ -717,7 +717,7 @@ class Rebuild
         $password = Connections::value($maintenance, 'password');
 
         $result = Process::env($password === '' ? [] : ['PGPASSWORD' => $password])
-            ->timeout(max(60, Config::integer('noria.db.timeout', 1800)))
+            ->timeout(max(60, Config::integer('keel.db.timeout', 1800)))
             ->run($arguments);
 
         if ($result->failed()) {
@@ -741,10 +741,10 @@ class Rebuild
 
     private function workingPath(string $database, string $purpose): string
     {
-        $configured = Config::get('noria.db.working_directory');
+        $configured = Config::get('keel.db.working_directory');
         $directory = is_string($configured) && $configured !== ''
             ? $configured
-            : sys_get_temp_dir().'/noria-backup';
+            : sys_get_temp_dir().'/keel-backup';
 
         if (! is_dir($directory) && ! mkdir($directory, 0755, true) && ! is_dir($directory)) {
             throw new RuntimeException("Unable to create the working directory at {$directory}.");
@@ -766,7 +766,7 @@ class Rebuild
     /** @return list<string> tables whose rows the rebuild does not carry over */
     private function unrestored(): array
     {
-        $tables = Config::array('noria.db.rebuild.unrestored', ['migrations']);
+        $tables = Config::array('keel.db.rebuild.unrestored', ['migrations']);
 
         return array_values(array_filter($tables, is_string(...)));
     }
@@ -775,11 +775,11 @@ class Rebuild
     private function connectTo(array $maintenance, string $database): Connection
     {
         /** @var Connection */
-        return DB::connectUsing('noria-rebuild-'.$database, [...$maintenance, 'database' => $database], force: true);
+        return DB::connectUsing('keel-rebuild-'.$database, [...$maintenance, 'database' => $database], force: true);
     }
 
     private function release(string $database): void
     {
-        DB::purge('noria-rebuild-'.$database);
+        DB::purge('keel-rebuild-'.$database);
     }
 }
