@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
-use NoriaLabs\Platform\Tenancy\Tenancy;
-use NoriaLabs\Platform\Tenancy\TenantJob;
+use Noria\Keel\Tenancy\Tenancy;
+use Noria\Keel\Tenancy\TenantJob;
 
 class CountWidgets extends TenantJob
 {

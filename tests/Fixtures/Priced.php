@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
 use Illuminate\Database\Eloquent\Model;
-use NoriaLabs\Platform\Money\MoneyCast;
+use Noria\Keel\Money\MoneyCast;
 
 class Priced extends Model
 {

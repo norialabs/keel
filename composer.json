@@ -1,6 +1,6 @@
 {
-    "name": "norialabs/platform",
-    "description": "The chassis every Noria Laravel product sits on: workspace tenancy with row level security, RBAC, an audit trail, passwordless auth, database operations, and the shared primitives.",
+    "name": "norialabs/keel",
+    "description": "Modular application infrastructure for Laravel: workspace tenancy, role-based access control, audit logging, passwordless authentication, invitations, and database operations.",
     "keywords": [
         "laravel",
         "multi-tenancy",
@@ -11,10 +11,10 @@
         "passwordless"
     ],
     "license": "MIT",
-    "homepage": "https://github.com/norialabs/platform",
+    "homepage": "https://github.com/norialabs/keel",
     "support": {
-        "issues": "https://github.com/norialabs/platform/issues",
-        "source": "https://github.com/norialabs/platform"
+        "issues": "https://github.com/norialabs/keel/issues",
+        "source": "https://github.com/norialabs/keel"
     },
     "type": "library",
     "authors": [
@@ -43,18 +43,18 @@
     },
     "autoload": {
         "psr-4": {
-            "NoriaLabs\\Platform\\": "src/"
+            "Noria\\Keel\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "NoriaLabs\\Platform\\Tests\\": "tests/"
+            "Noria\\Keel\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "NoriaLabs\\Platform\\PlatformServiceProvider"
+                "Noria\\Keel\\KeelServiceProvider"
             ]
         }
     },

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
-use NoriaLabs\Platform\Audit\AuditLog;
+use Noria\Keel\Audit\AuditLog;
 
 class HostAuditLog extends AuditLog
 {

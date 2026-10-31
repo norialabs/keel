@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Money;
+namespace Noria\Keel\Money;
 
 use Closure;
 use Illuminate\Support\Facades\Config;
@@ -135,13 +135,13 @@ final class Money
 
     public static function currency(): string
     {
-        return Config::string('noria.money.currency', 'KES');
+        return Config::string('keel.money.currency', 'KES');
     }
 
     public static function localeFor(?string $currency = null): string
     {
         $currency = strtoupper($currency ?? self::currency());
-        $mapped = Config::array('noria.money.locales', [])[$currency] ?? null;
+        $mapped = Config::array('keel.money.locales', [])[$currency] ?? null;
 
         return is_string($mapped) && $mapped !== ''
             ? $mapped
@@ -166,15 +166,15 @@ final class Money
     public static function fractionDigits(?string $currency = null): int
     {
         $currency = strtoupper($currency ?? self::currency());
-        $table = Config::array('noria.money.fraction_digits', []);
-        $digits = $table[$currency] ?? Config::integer('noria.money.digits', 2);
+        $table = Config::array('keel.money.fraction_digits', []);
+        $digits = $table[$currency] ?? Config::integer('keel.money.digits', 2);
 
         return max(0, min(is_numeric($digits) ? (int) $digits : 2, 2));
     }
 
     public static function maxMinor(): int
     {
-        return Config::integer('noria.money.max_minor', 1_000_000_000_000);
+        return Config::integer('keel.money.max_minor', 1_000_000_000_000);
     }
 
     /** @return list<string> the rules for an amount already in minor units */

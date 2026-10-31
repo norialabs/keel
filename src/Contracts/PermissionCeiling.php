@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Contracts;
+namespace Noria\Keel\Contracts;
 
 use Illuminate\Contracts\Auth\Authenticatable;
-use NoriaLabs\Platform\Rbac\Permissions;
+use Noria\Keel\Rbac\Permissions;
 
 interface PermissionCeiling
 {

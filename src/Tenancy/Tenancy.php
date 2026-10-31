@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tenancy;
+namespace Noria\Keel\Tenancy;
 
 use Closure;
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use NoriaLabs\Platform\Platform;
+use Noria\Keel\Keel;
 
 class Tenancy
 {
@@ -94,7 +94,7 @@ class Tenancy
      */
     public function asStaff(Closure $callback): mixed
     {
-        return $this->withGuc([Config::string('noria.tenancy.staff_read_guc', 'app.staff_read') => 'on'], $callback);
+        return $this->withGuc([Config::string('keel.tenancy.staff_read_guc', 'app.staff_read') => 'on'], $callback);
     }
 
     /**
@@ -105,7 +105,7 @@ class Tenancy
      */
     public function asPlatform(Closure $callback): mixed
     {
-        return $this->withGuc([Config::string('noria.tenancy.noria_write_guc', 'app.noria_write') => 'on'], $callback);
+        return $this->withGuc([Config::string('keel.tenancy.platform_write_guc', 'app.platform_write') => 'on'], $callback);
     }
 
     private function restore(Closure $reset): void
@@ -116,7 +116,7 @@ class Tenancy
             $this->gucs = [];
 
             if ($this->connection()->transactionLevel() === 0) {
-                DB::disconnect(Platform::connection());
+                DB::disconnect(Keel::connection());
             }
         }
     }
@@ -131,7 +131,7 @@ class Tenancy
      */
     private function pushGucs(array $settings): void
     {
-        if ($settings === [] || ! Config::boolean('noria.tenancy.enabled', true)) {
+        if ($settings === [] || ! Config::boolean('keel.tenancy.enabled', true)) {
             return;
         }
 
@@ -159,7 +159,7 @@ class Tenancy
     /** @return list<string> */
     private function declared(): array
     {
-        $gucs = Config::array('noria.tenancy.gucs', []);
+        $gucs = Config::array('keel.tenancy.gucs', []);
         $names = array_values(array_filter($gucs, is_string(...)));
 
         return in_array($this->workspaceGuc(), $names, true) ? $names : [$this->workspaceGuc(), ...$names];
@@ -167,11 +167,11 @@ class Tenancy
 
     private function workspaceGuc(): string
     {
-        return Config::string('noria.tenancy.workspace_guc', 'app.workspace_id');
+        return Config::string('keel.tenancy.workspace_guc', 'app.workspace_id');
     }
 
     private function connection(): Connection
     {
-        return DB::connection(Platform::connection());
+        return DB::connection(Keel::connection());
     }
 }

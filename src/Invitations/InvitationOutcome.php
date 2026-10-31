@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Invitations;
+namespace Noria\Keel\Invitations;
 
 use RuntimeException;
 

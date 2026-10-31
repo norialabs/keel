@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Invitations;
+namespace Noria\Keel\Invitations;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
-use NoriaLabs\Platform\Contracts\Courier;
-use NoriaLabs\Platform\Identity\Channel;
-use NoriaLabs\Platform\Identity\Destination;
-use NoriaLabs\Platform\Identity\KeyedHash;
-use NoriaLabs\Platform\Platform;
-use NoriaLabs\Platform\Tenancy\Tenancy;
+use Noria\Keel\Contracts\Courier;
+use Noria\Keel\Identity\Channel;
+use Noria\Keel\Identity\Destination;
+use Noria\Keel\Identity\KeyedHash;
+use Noria\Keel\Keel;
+use Noria\Keel\Tenancy\Tenancy;
 
 class Invitations
 {
@@ -43,15 +43,15 @@ class Invitations
         // the invitation the first one is still waiting on.
         $this->open($to, $workspaceId)->delete();
 
-        $invitation = Platform::invitationModel()::query()->create([
-            Config::string('noria.tenancy.column', 'workspace_id') => $workspaceId,
+        $invitation = Keel::invitationModel()::query()->create([
+            Config::string('keel.tenancy.column', 'workspace_id') => $workspaceId,
             'destination_hash' => $this->hash->of($to->value),
-            'destination_hint' => $to->hint(Config::string('noria.invitations.hint', 'masked')),
+            'destination_hint' => $to->hint(Config::string('keel.invitations.hint', 'masked')),
             'channel' => $channel->value,
             'role' => $role,
             'token_hash' => $this->hash->of($token),
             'invited_by' => $invitedBy,
-            'expires_at' => Carbon::now()->addDays(Config::integer('noria.invitations.ttl_days', 7)),
+            'expires_at' => Carbon::now()->addDays(Config::integer('keel.invitations.ttl_days', 7)),
         ]);
 
         $this->courier?->deliver($to, $channel, 'invitation', [...$context, 'token' => $token]);
@@ -65,13 +65,13 @@ class Invitations
     public function open(Destination $to, ?string $workspaceId = null): Builder
     {
         /** @var Builder<Invitation> $query */
-        $query = Platform::invitationModel()::query();
+        $query = Keel::invitationModel()::query();
 
         return $query
             ->where('destination_hash', $this->hash->of($to->value))
             ->when(
                 $workspaceId !== null,
-                fn (Builder $open): Builder => $open->where(Config::string('noria.tenancy.column', 'workspace_id'), $workspaceId),
+                fn (Builder $open): Builder => $open->where(Config::string('keel.tenancy.column', 'workspace_id'), $workspaceId),
             )
             ->whereNull('accepted_at')
             ->whereNull('revoked_at');
@@ -82,8 +82,8 @@ class Invitations
         $hash = $this->hash->of($token);
 
         $invitation = $this->tenancy->withGuc(
-            [Config::string('noria.invitations.token_guc', 'app.invitation_token') => $hash],
-            fn () => Platform::invitationModel()::query()->where('token_hash', $hash)->first(),
+            [Config::string('keel.invitations.token_guc', 'app.invitation_token') => $hash],
+            fn () => Keel::invitationModel()::query()->where('token_hash', $hash)->first(),
         );
 
         if (! $invitation instanceof Invitation) {
@@ -133,7 +133,7 @@ class Invitations
 
     public function prune(int $days = 30): int
     {
-        $deleted = Platform::invitationModel()::query()
+        $deleted = Keel::invitationModel()::query()
             ->where('expires_at', '<', Carbon::now()->subDays($days))
             ->delete();
 

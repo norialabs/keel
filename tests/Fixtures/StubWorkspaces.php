@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
 use Illuminate\Http\Request;
-use NoriaLabs\Platform\Contracts\WorkspaceResolver;
+use Noria\Keel\Contracts\WorkspaceResolver;
 
 class StubWorkspaces implements WorkspaceResolver
 {

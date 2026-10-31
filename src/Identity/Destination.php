@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Identity;
+namespace Noria\Keel\Identity;
 
 use Stringable;
 

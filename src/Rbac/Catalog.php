@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Rbac;
+namespace Noria\Keel\Rbac;
 
 use BackedEnum;
 use Illuminate\Support\Facades\Config;
-use NoriaLabs\Platform\Contracts\PermissionAction;
-use NoriaLabs\Platform\Contracts\PermissionResource;
-use NoriaLabs\Platform\Contracts\ScopedPermissionResource;
+use Noria\Keel\Contracts\PermissionAction;
+use Noria\Keel\Contracts\PermissionResource;
+use Noria\Keel\Contracts\ScopedPermissionResource;
 use RuntimeException;
 
 final class Catalog
@@ -94,11 +94,11 @@ final class Catalog
      */
     private static function cases(string $key, string $contract): array
     {
-        $enum = Config::get('noria.rbac.'.$key);
+        $enum = Config::get('keel.rbac.'.$key);
 
         if (! is_string($enum) || ! enum_exists($enum) || ! is_a($enum, $contract, allow_string: true)) {
             throw new RuntimeException(
-                "noria.rbac.{$key} must name a backed enum implementing ".$contract.'.'
+                "keel.rbac.{$key} must name a backed enum implementing ".$contract.'.'
             );
         }
 

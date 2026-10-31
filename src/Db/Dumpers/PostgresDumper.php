@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Db\Dumpers;
+namespace Noria\Keel\Db\Dumpers;
 
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Grammars\PostgresGrammar;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Process;
-use NoriaLabs\Platform\Contracts\DatabaseDumper;
-use NoriaLabs\Platform\Contracts\DatabaseMaintainer;
-use NoriaLabs\Platform\Contracts\DatabaseReplacer;
-use NoriaLabs\Platform\Db\Connections;
-use NoriaLabs\Platform\Db\Identifier;
-use NoriaLabs\Platform\Db\Schemas;
+use Noria\Keel\Contracts\DatabaseDumper;
+use Noria\Keel\Contracts\DatabaseMaintainer;
+use Noria\Keel\Contracts\DatabaseReplacer;
+use Noria\Keel\Db\Connections;
+use Noria\Keel\Db\Identifier;
+use Noria\Keel\Db\Schemas;
 use RuntimeException;
 use Throwable;
 
@@ -45,7 +45,7 @@ class PostgresDumper implements DatabaseDumper, DatabaseMaintainer, DatabaseRepl
             '--no-owner',
             '--no-privileges',
             '--format=plain',
-            '--compress='.max(0, min(9, Config::integer('noria.db.compression', 9))),
+            '--compress='.max(0, min(9, Config::integer('keel.db.compression', 9))),
             '--file='.$destination,
         ], 'pg_dump');
     }
@@ -202,7 +202,7 @@ class PostgresDumper implements DatabaseDumper, DatabaseMaintainer, DatabaseRepl
 
         $instruction = 'A backup needs a role that bypasses row level security: '
             ."create role <name> login password '...' nosuperuser nocreatedb nocreaterole bypassrls in role {$appRole}; "
-            .'then point noria.db.admin_connection at it.';
+            .'then point keel.db.admin_connection at it.';
 
         $probe = Connections::open('preflight', $connection);
 
@@ -368,7 +368,7 @@ class PostgresDumper implements DatabaseDumper, DatabaseMaintainer, DatabaseRepl
      */
     private function installAsSuperuser(array $connection, array $extensions): array
     {
-        $name = Config::get('noria.db.superuser_connection');
+        $name = Config::get('keel.db.superuser_connection');
         $database = Connections::value($connection, 'database');
 
         if (! is_string($name) || $name === '') {
@@ -404,7 +404,7 @@ class PostgresDumper implements DatabaseDumper, DatabaseMaintainer, DatabaseRepl
         ));
 
         return 'The dump names extensions ['.implode(', ', $extensions)."] that [{$database}] does not have "
-            .'and this role may not install. Point noria.db.superuser_connection at a role that may, '
+            .'and this role may not install. Point keel.db.superuser_connection at a role that may, '
             ."or run this against {$database} as one: {$statements}";
     }
 
@@ -489,7 +489,7 @@ class PostgresDumper implements DatabaseDumper, DatabaseMaintainer, DatabaseRepl
         $password = Connections::value($connection, 'password');
 
         $result = Process::env($password === '' ? [] : ['PGPASSWORD' => $password])
-            ->timeout(max(60, Config::integer('noria.db.timeout', 1800)))
+            ->timeout(max(60, Config::integer('keel.db.timeout', 1800)))
             ->run($command);
 
         if ($result->failed()) {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Csv;
+namespace Noria\Keel\Csv;
 
 use Closure;
 use Symfony\Component\HttpFoundation\StreamedResponse;

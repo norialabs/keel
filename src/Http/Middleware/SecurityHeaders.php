@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Http\Middleware;
+namespace Noria\Keel\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
@@ -18,7 +18,7 @@ class SecurityHeaders
     {
         $response = $next($request);
 
-        if (! Config::boolean('noria.http.security_headers.enabled', true)) {
+        if (! Config::boolean('keel.http.security_headers.enabled', true)) {
             return $response;
         }
 
@@ -40,13 +40,13 @@ class SecurityHeaders
             $this->cspHeader() => $this->policy($request, $response),
         ];
 
-        $permissions = Config::string('noria.http.security_headers.permissions_policy', '');
+        $permissions = Config::string('keel.http.security_headers.permissions_policy', '');
 
         if ($permissions !== '') {
             $headers['Permissions-Policy'] = $permissions;
         }
 
-        $maxAge = Config::integer('noria.http.security_headers.hsts_max_age', 0);
+        $maxAge = Config::integer('keel.http.security_headers.hsts_max_age', 0);
 
         if ($request->isSecure() && $maxAge > 0) {
             $headers['Strict-Transport-Security'] = "max-age={$maxAge}; includeSubDomains";
@@ -57,7 +57,7 @@ class SecurityHeaders
 
     private function api(Request $request): bool
     {
-        $paths = Config::array('noria.http.security_headers.api.paths', []);
+        $paths = Config::array('keel.http.security_headers.api.paths', []);
 
         foreach ($paths as $path) {
             if (is_string($path) && $request->is($path)) {
@@ -80,7 +80,7 @@ class SecurityHeaders
             return $directives;
         }
 
-        foreach (Config::array('noria.http.security_headers.dev_origin_directives', []) as $name) {
+        foreach (Config::array('keel.http.security_headers.dev_origin_directives', []) as $name) {
             if (! is_string($name) || ! isset($directives[$name])) {
                 continue;
             }
@@ -99,7 +99,7 @@ class SecurityHeaders
 
     private function devOrigin(): ?string
     {
-        if (! App::environment('local') || ! Config::boolean('noria.http.security_headers.dev_origin', true)) {
+        if (! App::environment('local') || ! Config::boolean('keel.http.security_headers.dev_origin', true)) {
             return null;
         }
 
@@ -119,7 +119,7 @@ class SecurityHeaders
 
     private function cspHeader(): string
     {
-        return Config::boolean('noria.http.security_headers.report_only', false)
+        return Config::boolean('keel.http.security_headers.report_only', false)
             ? 'Content-Security-Policy-Report-Only'
             : 'Content-Security-Policy';
     }
@@ -127,8 +127,8 @@ class SecurityHeaders
     private function policy(Request $request, Response $response): string
     {
         $directives = $this->api($request)
-            ? Config::array('noria.http.security_headers.api.directives', [])
-            : $this->withDevOrigin(Config::array('noria.http.security_headers.directives', []));
+            ? Config::array('keel.http.security_headers.api.directives', [])
+            : $this->withDevOrigin(Config::array('keel.http.security_headers.directives', []));
 
         if ($this->framed($response)) {
             $directives['frame-ancestors'] = ["'self'"];
@@ -148,7 +148,7 @@ class SecurityHeaders
             $parts[] = trim((string) $name.' '.implode(' ', $sources));
         }
 
-        $report = Config::get('noria.http.security_headers.report_uri');
+        $report = Config::get('keel.http.security_headers.report_uri');
 
         if (is_string($report) && $report !== '') {
             $parts[] = 'report-uri '.$report;

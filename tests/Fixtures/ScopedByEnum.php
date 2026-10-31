@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
-use NoriaLabs\Platform\Contracts\PermissionAction;
-use NoriaLabs\Platform\Contracts\ScopedPermissionResource;
+use Noria\Keel\Contracts\PermissionAction;
+use Noria\Keel\Contracts\ScopedPermissionResource;
 
 enum ScopedByEnum: string implements ScopedPermissionResource
 {

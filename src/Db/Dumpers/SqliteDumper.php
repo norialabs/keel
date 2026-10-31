@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Db\Dumpers;
+namespace Noria\Keel\Db\Dumpers;
 
-use NoriaLabs\Platform\Contracts\DatabaseDumper;
+use Noria\Keel\Contracts\DatabaseDumper;
 use RuntimeException;
 
 class SqliteDumper implements DatabaseDumper

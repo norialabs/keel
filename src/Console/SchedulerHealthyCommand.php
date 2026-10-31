@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Console;
+namespace Noria\Keel\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
 class SchedulerHealthyCommand extends Command
 {
-    protected $signature = 'noria:scheduler-healthy';
+    protected $signature = 'keel:scheduler-healthy';
 
     protected $description = 'Exit non-zero when the scheduler has stopped firing';
 
-    public const KEY = 'noria:scheduler:heartbeat';
+    public const KEY = 'keel:scheduler:heartbeat';
 
     public function handle(): int
     {

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
-use NoriaLabs\Platform\Contracts\Courier;
-use NoriaLabs\Platform\Identity\Channel;
-use NoriaLabs\Platform\Identity\Destination;
+use Noria\Keel\Contracts\Courier;
+use Noria\Keel\Identity\Channel;
+use Noria\Keel\Identity\Destination;
 
 class StubCourier implements Courier
 {

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Auth;
+namespace Noria\Keel\Auth;
 
 use Illuminate\Contracts\Auth\Authenticatable;
-use NoriaLabs\Platform\Contracts\PermissionCeiling;
-use NoriaLabs\Platform\Rbac\Catalog;
-use NoriaLabs\Platform\Rbac\Permissions;
+use Noria\Keel\Contracts\PermissionCeiling;
+use Noria\Keel\Rbac\Catalog;
+use Noria\Keel\Rbac\Permissions;
 
 class TokenCeiling implements PermissionCeiling
 {

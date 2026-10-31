@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Tests\Fixtures;
+namespace Noria\Keel\Tests\Fixtures;
 
 use Illuminate\Contracts\Auth\Authenticatable;
-use NoriaLabs\Platform\Contracts\PermissionCeiling;
-use NoriaLabs\Platform\Rbac\Permissions;
+use Noria\Keel\Contracts\PermissionCeiling;
+use Noria\Keel\Rbac\Permissions;
 
 class StubCeiling implements PermissionCeiling
 {

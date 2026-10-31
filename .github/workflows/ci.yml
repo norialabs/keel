@@ -170,7 +170,7 @@ jobs:
             fi
 
             FEED=$(curl -fsS --max-time 15 \
-              "https://repo.packagist.org/p2/norialabs/platform.json" || true)
+              "https://repo.packagist.org/p2/norialabs/keel.json" || true)
 
             if [ -z "$FEED" ]; then
               echo "Could not reach Packagist to confirm ${TAG} is unused; continuing."
@@ -277,4 +277,4 @@ jobs:
           curl -sS --fail-with-body -XPOST \
             -H 'Content-Type: application/json' \
             "https://packagist.org/api/update-package?username=thekiharani&apiToken=${PACKAGIST_TOKEN}" \
-            -d '{"repository":{"url":"https://github.com/norialabs/platform"}}'
+            -d "{\"repository\":{\"url\":\"https://github.com/${GITHUB_REPOSITORY}\"}}"

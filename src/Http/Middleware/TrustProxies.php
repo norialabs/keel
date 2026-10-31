@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Http\Middleware;
+namespace Noria\Keel\Http\Middleware;
 
 use Illuminate\Http\Middleware\TrustProxies as Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
-use NoriaLabs\Platform\Http\TrustedProxies;
+use Noria\Keel\Http\TrustedProxies;
 
 class TrustProxies extends Middleware
 {
@@ -19,6 +19,6 @@ class TrustProxies extends Middleware
 
     public function __construct()
     {
-        $this->proxies = TrustedProxies::from(Config::get('noria.http.trusted_proxies'));
+        $this->proxies = TrustedProxies::from(Config::get('keel.http.trusted_proxies'));
     }
 }

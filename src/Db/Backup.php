@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Db;
+namespace Noria\Keel\Db;
 
 use Closure;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
-use NoriaLabs\Platform\Log\Logger;
+use Noria\Keel\Log\Logger;
 use RuntimeException;
 use Throwable;
 
@@ -24,7 +24,7 @@ class Backup
     /** @return array{key: string, disk: string, tier: BackupTier, bytes: int, pruned: int} */
     public function run(?string $disk = null, ?BackupTier $tier = null, ?string $connection = null): array
     {
-        $disk ??= Config::string('noria.db.disk', 'local');
+        $disk ??= Config::string('keel.db.disk', 'local');
 
         $settings = Connections::asAdmin(Connections::settings($connection));
         $dumper = $this->dumpers->make(Connections::driver($settings));
@@ -63,7 +63,7 @@ class Backup
 
     public function latestKey(?string $disk = null): string
     {
-        $disk ??= Config::string('noria.db.disk', 'local');
+        $disk ??= Config::string('keel.db.disk', 'local');
         $files = [];
 
         foreach (BackupTier::cases() as $tier) {
@@ -86,7 +86,7 @@ class Backup
     /** @return list<string> newest first */
     public function all(?string $disk = null, ?BackupTier $tier = null): array
     {
-        $disk ??= Config::string('noria.db.disk', 'local');
+        $disk ??= Config::string('keel.db.disk', 'local');
         $tiers = $tier === null ? BackupTier::cases() : [$tier];
         $files = [];
 
@@ -126,13 +126,13 @@ class Backup
 
     public function disk(?string $disk = null): Filesystem
     {
-        return Storage::disk($disk ?? Config::string('noria.db.disk', 'local'));
+        return Storage::disk($disk ?? Config::string('keel.db.disk', 'local'));
     }
 
     private function dueTier(string $disk): BackupTier
     {
         $boundary = Carbon::now('UTC')->startOfDay()
-            ->addHours(max(0, min(23, Config::integer('noria.db.tiers.daily.hour', 0))));
+            ->addHours(max(0, min(23, Config::integer('keel.db.tiers.daily.hour', 0))));
 
         if (Carbon::now('UTC')->lt($boundary)) {
             return BackupTier::Hourly;
@@ -213,7 +213,7 @@ class Backup
 
     private function attempts(): int
     {
-        return max(1, Config::integer('noria.db.attempts', 3));
+        return max(1, Config::integer('keel.db.attempts', 3));
     }
 
     /** @param array<string, mixed> $settings */
@@ -269,7 +269,7 @@ class Backup
     public function unseal(string $sealed, string $destination): void
     {
         $key = $this->encryptionKey()
-            ?? throw new RuntimeException('This dump is encrypted and noria.db.encryption_key is not set.');
+            ?? throw new RuntimeException('This dump is encrypted and keel.db.encryption_key is not set.');
 
         [$source, $target] = $this->openPair($sealed, $destination);
 
@@ -305,10 +305,10 @@ class Backup
 
     public function workingDirectory(): string
     {
-        $configured = Config::get('noria.db.working_directory');
+        $configured = Config::get('keel.db.working_directory');
         $directory = is_string($configured) && $configured !== ''
             ? $configured
-            : sys_get_temp_dir().'/noria-backup';
+            : sys_get_temp_dir().'/keel-backup';
 
         if (! is_dir($directory) && ! mkdir($directory, 0755, true) && ! is_dir($directory)) {
             throw new RuntimeException("Unable to create the backup working directory at {$directory}.");
@@ -330,7 +330,7 @@ class Backup
 
     private function encryptionKey(): ?string
     {
-        $configured = Config::get('noria.db.encryption_key');
+        $configured = Config::get('keel.db.encryption_key');
 
         if (! is_string($configured) || $configured === '') {
             return null;
@@ -339,7 +339,7 @@ class Backup
         $key = str_starts_with($configured, 'base64:') ? base64_decode(substr($configured, 7), true) : $configured;
 
         if (! is_string($key) || strlen($key) !== SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_KEYBYTES) {
-            throw new RuntimeException('noria.db.encryption_key must be 32 bytes, written as base64:<key>.');
+            throw new RuntimeException('keel.db.encryption_key must be 32 bytes, written as base64:<key>.');
         }
 
         return $key;

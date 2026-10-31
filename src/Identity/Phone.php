@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Identity;
+namespace Noria\Keel\Identity;
 
 use Illuminate\Support\Facades\Config;
 use Stringable;
@@ -24,7 +24,7 @@ final class Phone implements Stringable
             return self::plausible($digits) ? new self('+'.$digits) : null;
         }
 
-        $code = self::diallingCode($country ?? Config::string('noria.identity.country', 'KE'));
+        $code = self::diallingCode($country ?? Config::string('keel.identity.country', 'KE'));
 
         if ($code === null) {
             return null;
@@ -66,7 +66,7 @@ final class Phone implements Stringable
 
     private static function diallingCode(string $country): ?string
     {
-        $codes = Config::array('noria.identity.dialling_codes', []);
+        $codes = Config::array('keel.identity.dialling_codes', []);
         $code = $codes[strtoupper($country)] ?? null;
 
         return is_scalar($code) ? (string) $code : null;

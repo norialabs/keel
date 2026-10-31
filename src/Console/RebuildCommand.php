@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Console;
+namespace Noria\Keel\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\App;
-use NoriaLabs\Platform\Db\Rebuild;
+use Noria\Keel\Db\Rebuild;
 
 class RebuildCommand extends Command
 {
-    protected $signature = 'noria:rebuild
+    protected $signature = 'keel:rebuild
         {--copy= : The name for the copy taken first}
         {--keep : Keep the copy and the dump afterwards}
         {--bring-up=* : Commands to run against the reloaded rows}

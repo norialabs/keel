@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform;
+namespace Noria\Keel;
 
 use Illuminate\Support\Facades\Config;
 use InvalidArgumentException;
-use NoriaLabs\Platform\Audit\AuditLog;
-use NoriaLabs\Platform\Auth\OtpChallenge;
-use NoriaLabs\Platform\Invitations\Invitation;
+use Noria\Keel\Audit\AuditLog;
+use Noria\Keel\Auth\OtpChallenge;
+use Noria\Keel\Invitations\Invitation;
 
-final class Platform
+final class Keel
 {
     /** @var class-string<AuditLog> */
     private static string $auditLogModel = AuditLog::class;
@@ -68,18 +68,18 @@ final class Platform
 
     public static function table(string $name): string
     {
-        $configured = Config::get('noria.tables.'.$name);
+        $configured = Config::get('keel.tables.'.$name);
 
         if (is_string($configured) && $configured !== '') {
             return $configured;
         }
 
-        return Config::string('noria.table_prefix', '').$name;
+        return Config::string('keel.table_prefix', '').$name;
     }
 
     public static function connection(): ?string
     {
-        $connection = Config::get('noria.connection');
+        $connection = Config::get('keel.connection');
 
         return is_string($connection) && $connection !== '' ? $connection : null;
     }

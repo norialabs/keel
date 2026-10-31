@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform;
+namespace Noria\Keel;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Foundation\Application;
@@ -10,40 +10,40 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-use NoriaLabs\Platform\Audit\AuditRecorder;
-use NoriaLabs\Platform\Audit\RequestContext;
-use NoriaLabs\Platform\Auth\Otp;
-use NoriaLabs\Platform\Auth\SocialState;
-use NoriaLabs\Platform\Console\BackupCommand;
-use NoriaLabs\Platform\Console\BuildErrorPagesCommand;
-use NoriaLabs\Platform\Console\PruneOtpCommand;
-use NoriaLabs\Platform\Console\RebuildCommand;
-use NoriaLabs\Platform\Console\RestoreCommand;
-use NoriaLabs\Platform\Console\SchedulerHealthyCommand;
-use NoriaLabs\Platform\Console\SchedulerHeartbeatCommand;
-use NoriaLabs\Platform\Console\TenancyCheckCommand;
-use NoriaLabs\Platform\Contracts\Courier;
-use NoriaLabs\Platform\Contracts\PermissionAction;
-use NoriaLabs\Platform\Contracts\PermissionCeiling;
-use NoriaLabs\Platform\Contracts\PermissionResource;
-use NoriaLabs\Platform\Contracts\PrincipalResolver;
-use NoriaLabs\Platform\Contracts\RoleRepository;
-use NoriaLabs\Platform\Db\Backup;
-use NoriaLabs\Platform\Db\DumperFactory;
-use NoriaLabs\Platform\Db\Rebuild;
-use NoriaLabs\Platform\Db\Restore;
-use NoriaLabs\Platform\Identity\KeyedHash;
-use NoriaLabs\Platform\Invitations\Invitations;
-use NoriaLabs\Platform\Rbac\PermissionResolver;
-use NoriaLabs\Platform\Tenancy\Tenancy;
+use Noria\Keel\Audit\AuditRecorder;
+use Noria\Keel\Audit\RequestContext;
+use Noria\Keel\Auth\Otp;
+use Noria\Keel\Auth\SocialState;
+use Noria\Keel\Console\BackupCommand;
+use Noria\Keel\Console\BuildErrorPagesCommand;
+use Noria\Keel\Console\PruneOtpCommand;
+use Noria\Keel\Console\RebuildCommand;
+use Noria\Keel\Console\RestoreCommand;
+use Noria\Keel\Console\SchedulerHealthyCommand;
+use Noria\Keel\Console\SchedulerHeartbeatCommand;
+use Noria\Keel\Console\TenancyCheckCommand;
+use Noria\Keel\Contracts\Courier;
+use Noria\Keel\Contracts\PermissionAction;
+use Noria\Keel\Contracts\PermissionCeiling;
+use Noria\Keel\Contracts\PermissionResource;
+use Noria\Keel\Contracts\PrincipalResolver;
+use Noria\Keel\Contracts\RoleRepository;
+use Noria\Keel\Db\Backup;
+use Noria\Keel\Db\DumperFactory;
+use Noria\Keel\Db\Rebuild;
+use Noria\Keel\Db\Restore;
+use Noria\Keel\Identity\KeyedHash;
+use Noria\Keel\Invitations\Invitations;
+use Noria\Keel\Rbac\PermissionResolver;
+use Noria\Keel\Tenancy\Tenancy;
 
-class PlatformServiceProvider extends ServiceProvider
+class KeelServiceProvider extends ServiceProvider
 {
     public const GATE = 'workspace-permission';
 
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/noria.php', 'noria');
+        $this->mergeConfigFrom(__DIR__.'/../config/keel.php', 'keel');
 
         $this->app->scoped(Tenancy::class);
         $this->app->scoped(PermissionResolver::class, fn (Application $app): PermissionResolver => new PermissionResolver(
@@ -86,15 +86,15 @@ class PlatformServiceProvider extends ServiceProvider
             ]);
 
             $this->publishes([
-                __DIR__.'/../config/noria.php' => config_path('noria.php'),
-            ], 'noria-config');
+                __DIR__.'/../config/keel.php' => config_path('keel.php'),
+            ], 'keel-config');
 
             $this->publishesMigrations([
                 __DIR__.'/../database/migrations' => database_path('migrations'),
-            ], 'noria-migrations');
+            ], 'keel-migrations');
         }
 
-        if (Config::boolean('noria.load_migrations', true)) {
+        if (Config::boolean('keel.load_migrations', true)) {
             $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         }
 

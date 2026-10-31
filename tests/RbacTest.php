@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Gate;
-use NoriaLabs\Platform\Auth\TokenAbilities;
-use NoriaLabs\Platform\Auth\TokenCeiling;
-use NoriaLabs\Platform\PlatformServiceProvider;
-use NoriaLabs\Platform\Rbac\Catalog;
-use NoriaLabs\Platform\Rbac\PermissionResolver;
-use NoriaLabs\Platform\Rbac\Permissions;
-use NoriaLabs\Platform\Tests\Fixtures\Action;
-use NoriaLabs\Platform\Tests\Fixtures\Resource;
-use NoriaLabs\Platform\Tests\Fixtures\Scope;
-use NoriaLabs\Platform\Tests\Fixtures\ScopedByEnum;
-use NoriaLabs\Platform\Tests\Fixtures\SidedResource;
-use NoriaLabs\Platform\Tests\Fixtures\StubCeiling;
-use NoriaLabs\Platform\Tests\Fixtures\StubPrincipal;
-use NoriaLabs\Platform\Tests\Fixtures\StubPrincipals;
-use NoriaLabs\Platform\Tests\Fixtures\StubRoles;
-use NoriaLabs\Platform\Tests\Fixtures\TokenHolder;
+use Noria\Keel\Auth\TokenAbilities;
+use Noria\Keel\Auth\TokenCeiling;
+use Noria\Keel\KeelServiceProvider;
+use Noria\Keel\Rbac\Catalog;
+use Noria\Keel\Rbac\PermissionResolver;
+use Noria\Keel\Rbac\Permissions;
+use Noria\Keel\Tests\Fixtures\Action;
+use Noria\Keel\Tests\Fixtures\Resource;
+use Noria\Keel\Tests\Fixtures\Scope;
+use Noria\Keel\Tests\Fixtures\ScopedByEnum;
+use Noria\Keel\Tests\Fixtures\SidedResource;
+use Noria\Keel\Tests\Fixtures\StubCeiling;
+use Noria\Keel\Tests\Fixtures\StubPrincipal;
+use Noria\Keel\Tests\Fixtures\StubPrincipals;
+use Noria\Keel\Tests\Fixtures\StubRoles;
+use Noria\Keel\Tests\Fixtures\TokenHolder;
 
 beforeEach(function (): void {
     StubPrincipals::$principal = null;
@@ -104,10 +104,10 @@ describe('the catalogue', function (): void {
     });
 
     it('says so plainly when a product has not named its enums', function (): void {
-        config(['noria.rbac.resources' => null]);
+        config(['keel.rbac.resources' => null]);
 
         Catalog::resources();
-    })->throws(RuntimeException::class, 'noria.rbac.resources');
+    })->throws(RuntimeException::class, 'keel.rbac.resources');
 });
 
 describe('resolving what a caller may do', function (): void {
@@ -157,8 +157,8 @@ describe('resolving what a caller may do', function (): void {
 
         $user = new User;
 
-        expect(Gate::forUser($user)->allows(PlatformServiceProvider::GATE, [Resource::Invoice, Action::View]))->toBeTrue();
-        expect(Gate::forUser($user)->allows(PlatformServiceProvider::GATE, [Resource::Invoice, Action::Delete]))->toBeFalse();
+        expect(Gate::forUser($user)->allows(KeelServiceProvider::GATE, [Resource::Invoice, Action::View]))->toBeTrue();
+        expect(Gate::forUser($user)->allows(KeelServiceProvider::GATE, [Resource::Invoice, Action::Delete]))->toBeFalse();
     });
 });
 
@@ -234,7 +234,7 @@ describe('the token vocabulary', function (): void {
 });
 
 describe('a catalogue with more than one side', function (): void {
-    beforeEach(fn () => config(['noria.rbac.resources' => SidedResource::class]));
+    beforeEach(fn () => config(['keel.rbac.resources' => SidedResource::class]));
 
     it('offers only the resources belonging to that side', function (): void {
         expect(array_map(fn ($r) => $r->value, Catalog::forScope('tenant')))
@@ -254,14 +254,14 @@ describe('a catalogue with more than one side', function (): void {
     });
 
     it('returns everything when the resources say nothing about scope', function (): void {
-        config(['noria.rbac.resources' => Resource::class]);
+        config(['keel.rbac.resources' => Resource::class]);
 
         expect(Catalog::forScope('tenant'))->toBe(Resource::cases());
     });
 });
 
 describe('a product that names its sides with an enum', function (): void {
-    beforeEach(fn () => config(['noria.rbac.resources' => ScopedByEnum::class]));
+    beforeEach(fn () => config(['keel.rbac.resources' => ScopedByEnum::class]));
 
     it('sorts the resources by side when the resource answers with an enum', function (): void {
         expect(array_map(fn ($r) => $r->value, Catalog::forScope('tenant')))

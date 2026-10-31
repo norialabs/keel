@@ -5,10 +5,10 @@ declare(strict_types=1);
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use NoriaLabs\Platform\Tenancy\Invariants;
-use NoriaLabs\Platform\Tenancy\Rls;
-use NoriaLabs\Platform\Tenancy\Tenancy;
-use NoriaLabs\Platform\Tenancy\TenancyMissing;
+use Noria\Keel\Tenancy\Invariants;
+use Noria\Keel\Tenancy\Rls;
+use Noria\Keel\Tenancy\Tenancy;
+use Noria\Keel\Tenancy\TenancyMissing;
 
 const WORKSPACE_A = '01a0b000-0000-7000-8000-00000000000a';
 const WORKSPACE_B = '01a0b000-0000-7000-8000-00000000000b';
@@ -89,7 +89,7 @@ it('leaves a table out of the report once the product says it is deliberate', fu
         $table->uuid('workspace_id')->nullable();
     });
 
-    config(['noria.tenancy.unscoped_tables' => ['unguarded']]);
+    config(['keel.tenancy.unscoped_tables' => ['unguarded']]);
 
     expect(Invariants::tablesWithoutPolicy())->not->toContain('unguarded');
 });

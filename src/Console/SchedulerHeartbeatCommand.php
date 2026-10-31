@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Console;
+namespace Noria\Keel\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Config;
 
 class SchedulerHeartbeatCommand extends Command
 {
-    protected $signature = 'noria:scheduler-heartbeat';
+    protected $signature = 'keel:scheduler-heartbeat';
 
     protected $description = 'Record that the scheduler is still firing';
 
@@ -19,7 +19,7 @@ class SchedulerHeartbeatCommand extends Command
         Cache::put(
             SchedulerHealthyCommand::KEY,
             now()->toIso8601String(),
-            Config::integer('noria.scheduler.heartbeat_ttl', 300),
+            Config::integer('keel.scheduler.heartbeat_ttl', 300),
         );
 
         return self::SUCCESS;

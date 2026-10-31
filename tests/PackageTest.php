@@ -4,28 +4,28 @@ declare(strict_types=1);
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
-use NoriaLabs\Platform\Audit\AuditLog;
-use NoriaLabs\Platform\Auth\OtpChallenge;
-use NoriaLabs\Platform\Http\Middleware\SecurityHeaders;
-use NoriaLabs\Platform\Platform;
+use Noria\Keel\Audit\AuditLog;
+use Noria\Keel\Auth\OtpChallenge;
+use Noria\Keel\Http\Middleware\SecurityHeaders;
+use Noria\Keel\Keel;
 use Symfony\Component\HttpFoundation\Response;
 
 describe('naming the tables', function (): void {
     it('creates the tables under the names the models will look for', function (): void {
         foreach (['audit_logs', 'otp_challenges'] as $name) {
-            expect(Schema::hasTable(Platform::table($name)))->toBeTrue("missing {$name}");
+            expect(Schema::hasTable(Keel::table($name)))->toBeTrue("missing {$name}");
         }
     });
 
     it('prefixes every table so a host can keep them out of its own namespace', function (): void {
-        config(['noria.table_prefix' => 'noria_']);
+        config(['keel.table_prefix' => 'keel_']);
 
-        expect((new AuditLog)->getTable())->toBe('noria_audit_logs');
-        expect((new OtpChallenge)->getTable())->toBe('noria_otp_challenges');
+        expect((new AuditLog)->getTable())->toBe('keel_audit_logs');
+        expect((new OtpChallenge)->getTable())->toBe('keel_otp_challenges');
     });
 
     it('renames one table without spelling out the others', function (): void {
-        config(['noria.tables.audit_logs' => 'activity']);
+        config(['keel.tables.audit_logs' => 'activity']);
 
         expect((new AuditLog)->getTable())->toBe('activity');
         expect((new OtpChallenge)->getTable())->toBe('otp_challenges');
@@ -33,7 +33,7 @@ describe('naming the tables', function (): void {
 
     it('keys every table on a uuid rather than an auto-increment', function (): void {
         foreach (['audit_logs', 'otp_challenges'] as $name) {
-            expect(Schema::getColumnType(Platform::table($name), 'id'))->not->toBe('integer');
+            expect(Schema::getColumnType(Keel::table($name), 'id'))->not->toBe('integer');
         }
     });
 
@@ -58,13 +58,13 @@ describe('security headers', function (): void {
     });
 
     it('lets a product relax one directive without dropping the middleware', function (): void {
-        config(['noria.http.security_headers.directives.script-src' => ["'self'", 'https://cdn.example.com']]);
+        config(['keel.http.security_headers.directives.script-src' => ["'self'", 'https://cdn.example.com']]);
 
         expect(respond()->headers->get('Content-Security-Policy'))->toContain('https://cdn.example.com');
     });
 
     it('reports rather than enforces while a product is still finding its directives', function (): void {
-        config(['noria.http.security_headers.report_only' => true]);
+        config(['keel.http.security_headers.report_only' => true]);
 
         expect(respond()->headers->get('Content-Security-Policy-Report-Only'))->not->toBeNull();
         expect(respond()->headers->get('Content-Security-Policy'))->toBeNull();
@@ -78,7 +78,7 @@ describe('security headers', function (): void {
     });
 
     it('sends nothing at all when a product turns it off', function (): void {
-        config(['noria.http.security_headers.enabled' => false]);
+        config(['keel.http.security_headers.enabled' => false]);
 
         expect(respond()->headers->get('Content-Security-Policy'))->toBeNull();
     });
@@ -99,7 +99,7 @@ describe('security headers', function (): void {
     });
 
     it('matches the api paths the product named, not a hardcoded one', function (): void {
-        config(['noria.http.security_headers.api.paths' => ['webhooks/*']]);
+        config(['keel.http.security_headers.api.paths' => ['webhooks/*']]);
 
         $api = (new SecurityHeaders)->handle(Request::create('/webhooks/mpesa'), fn () => new Response);
         $page = (new SecurityHeaders)->handle(Request::create('/api/plans'), fn () => new Response);

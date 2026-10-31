@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Console;
+namespace Noria\Keel\Console;
 
 use Illuminate\Console\Command;
-use NoriaLabs\Platform\Db\Timestamps;
-use NoriaLabs\Platform\Tenancy\Invariants;
+use Noria\Keel\Db\Timestamps;
+use Noria\Keel\Tenancy\Invariants;
 use Throwable;
 
 class TenancyCheckCommand extends Command
 {
-    protected $signature = 'noria:tenancy-check';
+    protected $signature = 'keel:tenancy-check';
 
     protected $description = 'Report anything about this deployment that is quietly wrong';
 

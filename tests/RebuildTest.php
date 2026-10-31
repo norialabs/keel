@@ -5,9 +5,9 @@ declare(strict_types=1);
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use NoriaLabs\Platform\Db\Connections;
-use NoriaLabs\Platform\Db\Rebuild;
-use NoriaLabs\Platform\Db\Schemas;
+use Noria\Keel\Db\Connections;
+use Noria\Keel\Db\Rebuild;
+use Noria\Keel\Db\Schemas;
 
 beforeEach(function (): void {
     if (DB::connection()->getDriverName() !== 'pgsql') {
@@ -209,7 +209,7 @@ describe('trimming a copy to the rebuilt shape', function (): void {
 
 describe('archiving what a release retires', function (): void {
     beforeEach(function (): void {
-        if (env('NORIA_TEST_PG_ADMIN') === null) {
+        if (env('KEEL_TEST_PG_ADMIN') === null) {
             $this->markTestSkipped('Needs a second connection that sees rows committed outside the test.');
         }
 
@@ -217,19 +217,19 @@ describe('archiving what a release retires', function (): void {
             $this->markTestSkipped('pg_restore is not on PATH.');
         }
 
-        DB::connection('noria_pg_admin')->statement('drop table if exists retired_widgets');
-        DB::connection('noria_pg_admin')->statement('create table retired_widgets (id int primary key, legacy text)');
-        DB::connection('noria_pg_admin')->table('retired_widgets')->insert(['id' => 1, 'legacy' => 'kept-for-good']);
+        DB::connection('keel_pg_admin')->statement('drop table if exists retired_widgets');
+        DB::connection('keel_pg_admin')->statement('create table retired_widgets (id int primary key, legacy text)');
+        DB::connection('keel_pg_admin')->table('retired_widgets')->insert(['id' => 1, 'legacy' => 'kept-for-good']);
     });
 
     afterEach(function (): void {
-        if (env('NORIA_TEST_PG_ADMIN') !== null) {
-            DB::connection('noria_pg_admin')->statement('drop table if exists retired_widgets');
+        if (env('KEEL_TEST_PG_ADMIN') !== null) {
+            DB::connection('keel_pg_admin')->statement('drop table if exists retired_widgets');
         }
     });
 
     it('keeps the schema and the rows it is about to drop, and names them', function (): void {
-        $maintenance = Connections::settings('noria_pg_admin');
+        $maintenance = Connections::settings('keel_pg_admin');
         $lines = [];
 
         $archive = app(Rebuild::class)->archive(

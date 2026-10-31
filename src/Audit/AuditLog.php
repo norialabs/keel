@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace NoriaLabs\Platform\Audit;
+namespace Noria\Keel\Audit;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use NoriaLabs\Platform\Concerns\AppendOnly;
-use NoriaLabs\Platform\Platform;
+use Noria\Keel\Concerns\AppendOnly;
+use Noria\Keel\Keel;
 
 /**
  * @property string $id
@@ -31,12 +31,12 @@ class AuditLog extends Model
 
     public function getTable(): string
     {
-        return Platform::table('audit_logs');
+        return Keel::table('audit_logs');
     }
 
     public function getConnectionName(): ?string
     {
-        return Platform::connection() ?? parent::getConnectionName();
+        return Keel::connection() ?? parent::getConnectionName();
     }
 
     /** @return array<string, string> */

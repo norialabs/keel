@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use NoriaLabs\Platform\Audit\AuditLog;
-use NoriaLabs\Platform\Audit\AuditRecorder;
-use NoriaLabs\Platform\Audit\RequestContext;
-use NoriaLabs\Platform\Platform;
-use NoriaLabs\Platform\Tests\Fixtures\HostAuditLog;
+use Noria\Keel\Audit\AuditLog;
+use Noria\Keel\Audit\AuditRecorder;
+use Noria\Keel\Audit\RequestContext;
+use Noria\Keel\Keel;
+use Noria\Keel\Tests\Fixtures\HostAuditLog;
 
 it('writes down what happened and who did it', function (): void {
     app(AuditRecorder::class)->record('invoice.voided', 'invoice', 'inv-1', ['amount' => 500], 'duplicate');
@@ -41,14 +41,14 @@ it('cannot be deleted once it is written', function (): void {
 })->throws(RuntimeException::class, 'append-only');
 
 it('does nothing at all when the product turned the trail off', function (): void {
-    config(['noria.audit.enabled' => false]);
+    config(['keel.audit.enabled' => false]);
 
     expect(app(AuditRecorder::class)->record('deal.won'))->toBeNull();
     expect(AuditLog::query()->count())->toBe(0);
 });
 
 it('writes through the model the host substituted', function (): void {
-    Platform::useAuditLogModel(HostAuditLog::class);
+    Keel::useAuditLogModel(HostAuditLog::class);
 
     app(AuditRecorder::class)->record('deal.won');
 
@@ -56,7 +56,7 @@ it('writes through the model the host substituted', function (): void {
 });
 
 it('refuses a substitute that is not an audit log', function (): void {
-    Platform::useAuditLogModel(stdClass::class);
+    Keel::useAuditLogModel(stdClass::class);
 })->throws(InvalidArgumentException::class);
 
 it('ties every row of one request together with a shared id', function (): void {

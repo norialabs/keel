@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
-use NoriaLabs\Platform\Csv\Reader;
-use NoriaLabs\Platform\Csv\Writer;
-use NoriaLabs\Platform\Http\Middleware\TrustProxies;
-use NoriaLabs\Platform\Http\TrustedProxies;
-use NoriaLabs\Platform\Money\Money;
-use NoriaLabs\Platform\Tests\Fixtures\Priced;
+use Noria\Keel\Csv\Reader;
+use Noria\Keel\Csv\Writer;
+use Noria\Keel\Http\Middleware\TrustProxies;
+use Noria\Keel\Http\TrustedProxies;
+use Noria\Keel\Money\Money;
+use Noria\Keel\Tests\Fixtures\Priced;
 
 function csvFile(string $contents): string
 {
-    $path = tempnam(sys_get_temp_dir(), 'platform-csv-').'.csv';
+    $path = tempnam(sys_get_temp_dir(), 'keel-csv-').'.csv';
     file_put_contents($path, $contents);
 
     return $path;
@@ -63,7 +63,7 @@ describe('money', function (): void {
     })->throws(InvalidArgumentException::class);
 
     it('takes the range from config', function (): void {
-        config(['noria.money.max_minor' => 5_000]);
+        config(['keel.money.max_minor' => 5_000]);
 
         expect(Money::maxMinor())->toBe(5_000);
         expect(fn () => Money::assertWithinBounds(5_001))->toThrow(InvalidArgumentException::class);
@@ -91,19 +91,19 @@ describe('showing an amount', function (): void {
     });
 
     it('takes the digits for a currency from config', function (): void {
-        config(['noria.money.fraction_digits.KES' => 2]);
+        config(['keel.money.fraction_digits.KES' => 2]);
 
         expect(Money::of(123_400, 'KES')->document())->toBe('1234.00');
     });
 
     it('falls back to the default digits for a currency nobody listed', function (): void {
-        config(['noria.money.digits' => 2]);
+        config(['keel.money.digits' => 2]);
 
         expect(Money::fractionDigits('XOF'))->toBe(2);
     });
 
     it('never shows more than two decimals, because nothing stores them', function (): void {
-        config(['noria.money.fraction_digits.KES' => 6]);
+        config(['keel.money.fraction_digits.KES' => 6]);
 
         expect(Money::fractionDigits('KES'))->toBe(2);
     });
@@ -139,7 +139,7 @@ describe('showing an amount', function (): void {
 
         expect(Money::localeFor('EUR'))->toBe('en_IE');
 
-        config(['noria.money.locales.KES' => 'sw_KE']);
+        config(['keel.money.locales.KES' => 'sw_KE']);
         expect(Money::localeFor('KES'))->toBe('sw_KE');
     });
 
@@ -311,7 +311,7 @@ describe('money on a model', function (): void {
     });
 
     it('falls back to the configured currency only when the row says nothing', function (): void {
-        config(['noria.money.currency' => 'TZS']);
+        config(['keel.money.currency' => 'TZS']);
 
         Priced::query()->create(['id' => '01a0b000-0000-7000-8000-000000000004', 'total' => 500]);
 
@@ -337,25 +337,25 @@ describe('trusting a proxy in the middleware', function (): void {
     }
 
     it('believes the caller a trusted hop forwarded', function (): void {
-        config(['noria.http.trusted_proxies' => '10.0.0.1,10.0.0.2']);
+        config(['keel.http.trusted_proxies' => '10.0.0.1,10.0.0.2']);
 
         expect(throughProxy())->toBe('203.0.113.9');
     });
 
     it('believes nothing forwarded by a hop it was not told about', function (): void {
-        config(['noria.http.trusted_proxies' => '192.0.2.1']);
+        config(['keel.http.trusted_proxies' => '192.0.2.1']);
 
         expect(throughProxy())->toBe('10.0.0.1');
     });
 
     it('believes nothing at all when the host configured nothing', function (): void {
-        config(['noria.http.trusted_proxies' => null]);
+        config(['keel.http.trusted_proxies' => null]);
 
         expect(throughProxy())->toBe('10.0.0.1');
     });
 
     it('believes every hop only when told to in so many words', function (): void {
-        config(['noria.http.trusted_proxies' => '*']);
+        config(['keel.http.trusted_proxies' => '*']);
 
         expect(throughProxy())->toBe('203.0.113.9');
     });
@@ -414,7 +414,7 @@ describe('an uploaded csv', function (): void {
     })->throws(InvalidArgumentException::class, 'too large');
 
     it('refuses content that decodes to more than the ceiling', function (): void {
-        config(['noria.csv.max_bytes' => 16]);
+        config(['keel.csv.max_bytes' => 16]);
 
         Reader::decode(base64_encode(str_repeat('a', 64)));
     })->throws(InvalidArgumentException::class, 'too large');
@@ -432,7 +432,7 @@ describe('an uploaded csv', function (): void {
     });
 
     it('takes the ceiling from config', function (): void {
-        config(['noria.csv.max_bytes' => 1_024]);
+        config(['keel.csv.max_bytes' => 1_024]);
 
         expect(Reader::maxBytes())->toBe(1_024);
         expect(Reader::uploadRules()['csv'])->toContain('max:1024');
