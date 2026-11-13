@@ -25,9 +25,9 @@ class Otp
      *
      * @throws OtpThrottled when one was issued to this destination too recently
      */
-    public function issue(Destination $to, Channel $channel = Channel::Email): string
+    public function issue(Destination $to, Channel $channel = Channel::Email, ?string $holder = null): string
     {
-        $wait = $this->secondsUntilNextIssue($to);
+        $wait = $this->secondsUntilNextIssue($to, $holder);
 
         if ($wait !== null) {
             throw new OtpThrottled("Another code may be requested in {$wait} seconds.", $wait);
@@ -35,10 +35,10 @@ class Otp
 
         $code = $this->code();
 
-        $this->pending($to)->delete();
+        $this->pending($to, $holder)->delete();
 
         $challenge = Keel::otpChallengeModel()::query()->create([
-            'destination_hash' => $this->hash->of($to->value),
+            'destination_hash' => $this->challengeKey($to, $holder),
             'destination_hint' => $to->hint(Config::string('keel.auth.otp.hint', 'masked')),
             'channel' => $channel->value,
             'code_hash' => Hash::make($code),
@@ -51,18 +51,18 @@ class Otp
         return $code;
     }
 
-    public function verify(Destination $to, string $code): OtpOutcome
+    public function verify(Destination $to, string $code, ?string $holder = null): OtpOutcome
     {
-        $outcome = $this->check($to, $code);
+        $outcome = $this->check($to, $code, $holder);
 
         Event::dispatch(new OtpAttempted($to, $outcome));
 
         return $outcome;
     }
 
-    private function check(Destination $to, string $code): OtpOutcome
+    private function check(Destination $to, string $code, ?string $holder): OtpOutcome
     {
-        $challenge = $this->pending($to)->latest('created_at')->first();
+        $challenge = $this->pending($to, $holder)->latest('created_at')->first();
 
         if ($challenge === null) {
             return OtpOutcome::NoChallenge;
@@ -96,7 +96,7 @@ class Otp
         return $consumed === 1 ? OtpOutcome::Verified : OtpOutcome::NoChallenge;
     }
 
-    public function secondsUntilNextIssue(Destination $to): ?int
+    public function secondsUntilNextIssue(Destination $to, ?string $holder = null): ?int
     {
         $throttle = Config::integer('keel.auth.otp.throttle', 60);
 
@@ -105,7 +105,7 @@ class Otp
         }
 
         $last = Keel::otpChallengeModel()::query()
-            ->where('destination_hash', $this->hash->of($to->value))
+            ->where('destination_hash', $this->challengeKey($to, $holder))
             ->latest('created_at')
             ->first();
 
@@ -129,11 +129,16 @@ class Otp
         return is_int($deleted) ? $deleted : 0;
     }
 
+    public function challengeKey(Destination $to, ?string $holder = null): string
+    {
+        return $this->hash->of($holder === null ? $to->value : $to->value."\n".$holder);
+    }
+
     /** @return Builder<OtpChallenge> */
-    private function pending(Destination $to)
+    private function pending(Destination $to, ?string $holder)
     {
         return Keel::otpChallengeModel()::query()
-            ->where('destination_hash', $this->hash->of($to->value))
+            ->where('destination_hash', $this->challengeKey($to, $holder))
             ->whereNull('consumed_at');
     }
 
