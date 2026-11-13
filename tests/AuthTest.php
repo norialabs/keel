@@ -161,6 +161,35 @@ it('keeps one person code separate from another', function (): void {
     expect($otp->verify(to('grace@example.com'), $ada))->toBe(OtpOutcome::Incorrect);
 });
 
+it('keeps a code held by one browser out of reach of everyone else asking for the same address', function (): void {
+    config(['keel.auth.otp.attempts' => 3]);
+
+    $otp = app(Otp::class);
+    $mine = $otp->issue(to('ada@example.com'), holder: 'my-browser');
+    $theirs = $otp->issue(to('ada@example.com'), holder: 'their-browser');
+    $unheld = $otp->issue(to('ada@example.com'));
+
+    foreach (range(1, 3) as $guess) {
+        $otp->verify(to('ada@example.com'), '000000', 'their-browser');
+        $otp->verify(to('ada@example.com'), '000000');
+    }
+
+    expect($otp->verify(to('ada@example.com'), $theirs, 'their-browser'))->toBe(OtpOutcome::Exhausted)
+        ->and($otp->verify(to('ada@example.com'), $unheld))->toBe(OtpOutcome::Exhausted)
+        ->and($otp->verify(to('ada@example.com'), $mine, 'their-browser'))->toBe(OtpOutcome::Exhausted)
+        ->and($otp->verify(to('ada@example.com'), $mine))->toBe(OtpOutcome::Exhausted)
+        ->and($otp->verify(to('ada@example.com'), $mine, 'my-browser'))->toBe(OtpOutcome::Verified);
+});
+
+it('makes each holder wait for its own next code, not for anyone else', function (): void {
+    $otp = app(Otp::class);
+    $otp->issue(to('ada@example.com'), holder: 'their-browser');
+
+    expect($otp->secondsUntilNextIssue(to('ada@example.com'), 'their-browser'))->toBeGreaterThan(0)
+        ->and($otp->secondsUntilNextIssue(to('ada@example.com'), 'my-browser'))->toBeNull()
+        ->and($otp->secondsUntilNextIssue(to('ada@example.com')))->toBeNull();
+});
+
 it('clears out codes nobody will use again', function (): void {
     $otp = app(Otp::class);
     $otp->issue(to('ada@example.com'));

@@ -207,6 +207,21 @@ Deliver the returned code through your application. Pass the destination and sub
 then performs user lookup and login. `issue()` throws `OtpThrottled` when the destination must
 wait before requesting another code.
 
+Without a holder, a destination has one pending challenge: anyone who can reach your endpoints
+can replace it by asking for a new code, or spend its attempts by guessing. Pass the same opaque
+`holder` to `issue()`, `verify()` and `secondsUntilNextIssue()` to tie a challenge to whoever asked
+for it, such as a random value kept in that browser's session:
+
+```php
+$code = app(Otp::class)->issue($destination, Channel::Email, holder: $sessionValue);
+$outcome = app(Otp::class)->verify($destination, $submitted, holder: $sessionValue);
+```
+
+Each holder then has its own challenge, attempts and wait between codes, so one caller cannot
+disturb another's sign-in. The wait no longer limits how many codes reach a destination in total;
+cap that in your application. `challengeKey($destination, $holder)` returns the stored
+`destination_hash` for a challenge when you need to find its row.
+
 The service hashes codes and destinations, tracks verification attempts, and replaces pending
 challenges when issuing a new code. It does not send messages or register routes, sessions, or
 user models. Schedule `keel:prune-otp` to remove old expired challenges.
